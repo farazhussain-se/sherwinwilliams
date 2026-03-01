@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Absences – Dayforce</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { overflow: hidden; height: auto; background: transparent; }
+        body { padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; color: #111827; }
+
+        /* ── Dayforce UI tokens ── */
+        :root {
+            --df-blue:    #0071CE;
+            --df-navy:    #003057;
+            --df-green:   #00844B;
+            --df-amber:   #F59E0B;
+            --df-red:     #DC2626;
+            --df-border:  #E2E8F0;
+            --df-bg:      #F8FAFC;
+            --df-text:    #1E293B;
+            --df-subtle:  #64748B;
+            --df-label:   #94A3B8;
+        }
+
+        .widget { background: white; font-size: 13px; }
+
+        /* ── Dayforce widget header ── */
+        .df-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid var(--df-border);
+        }
+        .df-header-title {
+            font-size: 13px; font-weight: 700; color: var(--df-navy);
+            display: flex; align-items: center; gap: 6px;
+        }
+        .df-logo-chip {
+            background: var(--df-blue); color: white;
+            font-size: 8px; font-weight: 900; letter-spacing: 0.06em;
+            padding: 2px 6px; border-radius: 3px;
+        }
+        .df-sync { font-size: 9px; color: var(--df-subtle); display: flex; align-items: center; gap: 4px; }
+        .df-sync-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
+
+        /* ── Section titles ── */
+        .section-title {
+            font-size: 18px; font-weight: 700; color: var(--df-text);
+            padding: 14px 16px 4px;
+        }
+        .section-sub {
+            font-size: 12px; color: var(--df-subtle);
+            padding: 0 16px 12px; line-height: 1.5;
+        }
+
+        /* ── Balance cards ── */
+        .balance-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 10px; padding: 0 16px 16px;
+        }
+        .bal-card {
+            border: 1px solid var(--df-border);
+            border-radius: 10px; padding: 12px;
+            background: var(--df-bg);
+        }
+        .bal-card-top {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .bal-icon { font-size: 18px; }
+        .bal-status {
+            font-size: 8px; font-weight: 700; padding: 2px 6px;
+            border-radius: 99px; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .st-active { background: #dcfce7; color: #166534; }
+        .st-pending { background: #fef3c7; color: #92400e; }
+        .bal-name { font-size: 10px; font-weight: 600; color: var(--df-subtle); margin-bottom: 2px; }
+        .bal-val  { font-size: 22px; font-weight: 900; color: var(--df-navy); line-height: 1; }
+        .bal-unit { font-size: 10px; color: var(--df-subtle); margin-top: 1px; }
+
+        /* Accrual progress bar */
+        .bal-bar-wrap { margin-top: 8px; }
+        .bal-bar-labels { display: flex; justify-content: space-between; font-size: 8px; color: var(--df-label); margin-bottom: 3px; }
+        .bal-bar-bg { background: #e2e8f0; border-radius: 99px; height: 5px; overflow: hidden; }
+        .bal-bar-fill { height: 100%; border-radius: 99px; background: var(--df-blue); }
+
+        /* ── Divider ── */
+        .divider { height: 1px; background: var(--df-border); margin: 0 16px; }
+
+        /* ── Absence list ── */
+        .abs-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 16px 4px;
+        }
+        .abs-header-title { font-size: 18px; font-weight: 700; color: var(--df-text); }
+        .request-btn {
+            background: var(--df-blue); color: white;
+            font-size: 10px; font-weight: 700; padding: 6px 12px;
+            border-radius: 6px; border: none; cursor: pointer;
+            display: flex; align-items: center; gap: 4px;
+            white-space: nowrap;
+        }
+        .request-btn:hover { background: #005fad; }
+
+        /* Tabs */
+        .abs-tabs { display: flex; border-bottom: 1px solid var(--df-border); margin: 0 16px; gap: 0; }
+        .abs-tab {
+            padding: 8px 12px; font-size: 11px; font-weight: 600;
+            color: var(--df-subtle); border: none; background: transparent;
+            cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+        }
+        .abs-tab.active { color: var(--df-blue); border-bottom-color: var(--df-blue); font-weight: 700; }
+
+        /* Absence rows */
+        .abs-list { padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 6px; }
+
+        .abs-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 8px;
+            border: 1px solid var(--df-border); background: white;
+        }
+        .abs-date-block { text-align: center; flex-shrink: 0; width: 36px; }
+        .abs-date-block .adb-mon { font-size: 8px; font-weight: 700; color: var(--df-blue); text-transform: uppercase; letter-spacing: 0.05em; }
+        .abs-date-block .adb-day { font-size: 18px; font-weight: 900; color: var(--df-navy); line-height: 1; }
+        .abs-info { flex: 1; min-width: 0; }
+        .abs-reason { font-size: 11px; font-weight: 700; color: var(--df-text); }
+        .abs-meta   { font-size: 9px; color: var(--df-subtle); margin-top: 2px; }
+        .abs-right  { text-align: right; flex-shrink: 0; }
+        .abs-days   { font-size: 13px; font-weight: 800; color: var(--df-navy); }
+        .abs-days-label { font-size: 8px; color: var(--df-label); }
+
+        .abs-status {
+            font-size: 8px; font-weight: 700; padding: 2px 7px;
+            border-radius: 99px; text-transform: uppercase; letter-spacing: 0.04em;
+            margin-top: 4px; display: inline-block;
+        }
+        .as-approved { background: #dcfce7; color: #166534; }
+        .as-pending  { background: #fef3c7; color: #92400e; }
+        .as-declined { background: #fee2e2; color: #991b1b; }
+
+        /* Empty state */
+        .empty-state { text-align: center; padding: 20px 16px; }
+        .empty-state p { font-size: 11px; color: var(--df-subtle); line-height: 1.6; }
+
+        /* ── Request Modal overlay ── */
+        .modal-backdrop {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.45); z-index: 100;
+            align-items: center; justify-content: center;
+            padding: 16px;
+        }
+        .modal-backdrop.open { display: flex; }
+        .modal {
+            background: white; border-radius: 14px;
+            width: 100%; max-width: 340px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .modal-header {
+            background: var(--df-navy); padding: 12px 16px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-title { color: white; font-size: 13px; font-weight: 800; }
+        .modal-close { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 18px; cursor: pointer; line-height: 1; }
+
+        .modal-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+        .form-group label { display: block; font-size: 10px; font-weight: 700; color: var(--df-subtle); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+        .form-group select, .form-group input[type="date"], .form-group textarea {
+            width: 100%; padding: 8px 10px; border: 1px solid var(--df-border);
+            border-radius: 6px; font-size: 12px; color: var(--df-text);
+            background: var(--df-bg); font-family: inherit; outline: none;
+            -webkit-appearance: none; appearance: none;
+        }
+        .form-group select:focus, .form-group input:focus, .form-group textarea:focus {
+            border-color: var(--df-blue); background: white;
+        }
+        .form-group textarea { resize: none; height: 60px; }
+        .date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+        .bal-preview {
+            background: #eff6ff; border: 1px solid #bfdbfe;
+            border-radius: 8px; padding: 10px 12px;
+            font-size: 11px; color: #1e40af;
+        }
+        .bal-preview strong { font-size: 13px; font-weight: 900; }
+
+        .modal-footer { display: flex; gap: 8px; padding: 0 16px 16px; }
+        .btn-cancel { flex: 1; padding: 10px; border: 1px solid var(--df-border); background: white; border-radius: 8px; font-size: 12px; font-weight: 700; color: var(--df-subtle); cursor: pointer; }
+        .btn-submit { flex: 2; padding: 10px; border: none; background: var(--df-blue); color: white; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; }
+        .btn-submit:hover { background: #005fad; }
+
+        /* Success toast */
+        .toast {
+            display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--df-green); color: white; font-size: 11px; font-weight: 700;
+            padding: 10px 18px; border-radius: 99px; z-index: 200;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2); white-space: nowrap;
+        }
+        .toast.show { display: block; }
+
+        /* Footer */
+        .df-footer {
+            background: #f1f5f9; border-top: 1px solid var(--df-border);
+            padding: 8px 16px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .df-footer span { font-size: 9px; color: var(--df-label); }
+    </style>
+</head>
+<body>
+
+<div class="widget">
+
+    <!-- Dayforce Widget Header -->
+    <div class="df-header">
+        <div class="df-header-title">
+            <span class="df-logo-chip">DAYFORCE</span>
+            My Absences
+        </div>
+        <div class="df-sync">
+            <div class="df-sync-dot"></div>
+            <span id="sync-time">Synced just now</span>
+        </div>
+    </div>
+
+    <!-- ══════════════════════
+         ABSENCE BALANCE
+    ══════════════════════ -->
+    <div class="section-title">Absence Balance</div>
+    <div class="section-sub">Your current accrued balances as of today. Balances update in real time as requests are approved.</div>
+
+    <div class="balance-grid">
+        <!-- Vacation -->
+        <div class="bal-card">
+            <div class="bal-card-top">
+                <div class="bal-icon">🏖️</div>
+                <span class="bal-status st-active">Active</span>
+            </div>
+            <div class="bal-name">Vacation</div>
+            <div class="bal-val">8.5</div>
+            <div class="bal-unit">days remaining</div>
+            <div class="bal-bar-wrap">
+                <div class="bal-bar-labels"><span>Used: 6.5d</span><span>Accrued: 15d</span></div>
+                <div class="bal-bar-bg"><div class="bal-bar-fill" style="width:56.7%"></div></div>
+            </div>
+        </div>
+        <!-- Sick -->
+        <div class="bal-card">
+            <div class="bal-card-top">
+                <div class="bal-icon">🩺</div>
+                <span class="bal-status st-active">Active</span>
+            </div>
+            <div class="bal-name">Sick Leave</div>
+            <div class="bal-val">4.0</div>
+            <div class="bal-unit">days remaining</div>
+            <div class="bal-bar-wrap">
+                <div class="bal-bar-labels"><span>Used: 2d</span><span>Accrued: 6d</span></div>
+                <div class="bal-bar-bg"><div class="bal-bar-fill" style="width:66.7%; background:#00844B;"></div></div>
+            </div>
+        </div>
+        <!-- Personal -->
+        <div class="bal-card">
+            <div class="bal-card-top">
+                <div class="bal-icon">👤</div>
+                <span class="bal-status st-active">Active</span>
+            </div>
+            <div class="bal-name">Personal</div>
+            <div class="bal-val">1.0</div>
+            <div class="bal-unit">days remaining</div>
+            <div class="bal-bar-wrap">
+                <div class="bal-bar-labels"><span>Used: 2d</span><span>Accrued: 3d</span></div>
+                <div class="bal-bar-bg"><div class="bal-bar-fill" style="width:33.3%; background:#7c3aed;"></div></div>
+            </div>
+        </div>
+        <!-- FMLA -->
+        <div class="bal-card">
+            <div class="bal-card-top">
+                <div class="bal-icon">📋</div>
+                <span class="bal-status st-pending">1 Pending</span>
+            </div>
+            <div class="bal-name">Bereavement</div>
+            <div class="bal-val">3.0</div>
+            <div class="bal-unit">days available</div>
+            <div class="bal-bar-wrap">
+                <div class="bal-bar-labels"><span>Used: 0d</span><span>Annual: 3d</span></div>
+                <div class="bal-bar-bg"><div class="bal-bar-fill" style="width:0%; background:#f59e0b;"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══════════════════════
+         ABSENCES LIST
+    ══════════════════════ -->
+    <div class="abs-header">
+        <div class="abs-header-title">Absences</div>
+        <button class="request-btn" onclick="openModal()">+ Request Time Off</button>
+    </div>
+    <div style="font-size:12px;color:var(--df-subtle);padding:0 16px 10px;line-height:1.5;">
+        Your past and upcoming approved and pending time away requests.
+    </div>
+
+    <!-- Tabs -->
+    <div class="abs-tabs">
+        <button class="abs-tab active" onclick="switchAbsTab('upcoming',this)">Upcoming</button>
+        <button class="abs-tab"        onclick="switchAbsTab('past',this)">Past</button>
+        <button class="abs-tab"        onclick="switchAbsTab('all',this)">All</button>
+    </div>
+
+    <!-- List -->
+    <div class="abs-list" id="abs-list"></div>
+
+    <!-- Footer -->
+    <div class="df-footer">
+        <span>Work › Time Away List</span>
+        <span id="footer-ts"></span>
+    </div>
+
+</div>
+
+<!-- ══════════════════════
+     REQUEST MODAL
+══════════════════════ -->
+<div class="modal-backdrop" id="modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Request New Time Off</span>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Reason / Type</label>
+                <select id="req-type" onchange="updatePreview()">
+                    <option value="">— Select reason —</option>
+                    <option value="Vacation">Vacation</option>
+                    <option value="Sick Leave">Sick Leave</option>
+                    <option value="Personal">Personal Day</option>
+                    <option value="Bereavement">Bereavement</option>
+                    <option value="FMLA">FMLA / Medical Leave</option>
+                    <option value="Jury Duty">Jury Duty</option>
+                </select>
+            </div>
+            <div class="form-group date-row">
+                <div>
+                    <label>Start Date</label>
+                    <input type="date" id="req-start" onchange="updatePreview()">
+                </div>
+                <div>
+                    <label>End Date</label>
+                    <input type="date" id="req-end" onchange="updatePreview()">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Notes (optional)</label>
+                <textarea id="req-notes" placeholder="Add any details for your manager..."></textarea>
+            </div>
+            <div class="bal-preview" id="bal-preview" style="display:none">
+                📊 Estimated deduction: <strong id="preview-days">0</strong> day(s) from your <span id="preview-type">—</span> balance
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-submit" onclick="submitRequest()">Submit Request</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast">✓ Time off request submitted to Dayforce</div>
+
+<script>
+    // Footer timestamp
+    document.getElementById('footer-ts').textContent =
+        'As of ' + new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    document.getElementById('sync-time').textContent =
+        'Synced ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
+    // Pre-set date inputs to today
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('req-start').value = today;
+    document.getElementById('req-end').value   = today;
+
+    // ── Absence data ──
+    var absences = [
+        { id:1, month:'MAR', day:'14', reason:'Vacation',   meta:'Mar 14 – Mar 15, 2026',  days:2, status:'approved', future:true  },
+        { id:2, month:'APR', day:'3',  reason:'Personal Day',meta:'Apr 3, 2026',             days:1, status:'pending',  future:true  },
+        { id:3, month:'JAN', day:'22', reason:'Sick Leave',  meta:'Jan 22, 2026',            days:1, status:'approved', future:false },
+        { id:4, month:'DEC', day:'26', reason:'Vacation',   meta:'Dec 26 – Dec 30, 2025',  days:3, status:'approved', future:false },
+        { id:5, month:'NOV', day:'11', reason:'Sick Leave',  meta:'Nov 11, 2025',            days:1, status:'approved', future:false }
+    ];
+
+    var absTab = 'upcoming';
+
+    function switchAbsTab(name, btn) {
+        absTab = name;
+        document.querySelectorAll('.abs-tab').forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        renderAbsences();
+    }
+
+    function renderAbsences() {
+        var list = absences.filter(function(a) {
+            if (absTab === 'upcoming') return a.future;
+            if (absTab === 'past')     return !a.future;
+            return true;
+        });
+
+        if (!list.length) {
+            document.getElementById('abs-list').innerHTML =
+                '<div class="empty-state"><p>No absences to display<br>for this period.</p></div>';
+            return;
+        }
+
+        var statusClass = { approved:'as-approved', pending:'as-pending', declined:'as-declined' };
+        var statusLabel = { approved:'Approved', pending:'Pending Approval', declined:'Declined' };
+
+        var html = '';
+        list.forEach(function(a) {
+            html += '<div class="abs-row">'+
+                '<div class="abs-date-block">'+
+                    '<div class="adb-mon">'+a.month+'</div>'+
+                    '<div class="adb-day">'+a.day+'</div>'+
+                '</div>'+
+                '<div class="abs-info">'+
+                    '<div class="abs-reason">'+a.reason+'</div>'+
+                    '<div class="abs-meta">'+a.meta+'</div>'+
+                    '<span class="abs-status '+statusClass[a.status]+'">'+statusLabel[a.status]+'</span>'+
+                '</div>'+
+                '<div class="abs-right">'+
+                    '<div class="abs-days">'+a.days+'</div>'+
+                    '<div class="abs-days-label">'+(a.days===1?'day':'days')+'</div>'+
+                '</div>'+
+            '</div>';
+        });
+        document.getElementById('abs-list').innerHTML = html;
+    }
+
+    renderAbsences();
+
+    // ── Modal ──
+    function openModal()  { document.getElementById('modal').classList.add('open'); }
+    function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+    function updatePreview() {
+        var type  = document.getElementById('req-type').value;
+        var start = document.getElementById('req-start').value;
+        var end   = document.getElementById('req-end').value;
+        var prev  = document.getElementById('bal-preview');
+
+        if (type && start && end) {
+            var s = new Date(start), e = new Date(end);
+            var days = Math.max(1, Math.round((e - s) / 86400000) + 1);
+            document.getElementById('preview-days').textContent = days;
+            document.getElementById('preview-type').textContent = type;
+            prev.style.display = 'block';
+        } else {
+            prev.style.display = 'none';
+        }
+    }
+
+    function submitRequest() {
+        var type  = document.getElementById('req-type').value;
+        var start = document.getElementById('req-start').value;
+        var end   = document.getElementById('req-end').value;
+        if (!type || !start) return;
+
+        // Parse and add to list
+        var sd = new Date(start);
+        var mons = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+        var days = Math.max(1, Math.round((new Date(end) - sd) / 86400000) + 1);
+        var metaStr = sd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+        if (start !== end) metaStr += ' – ' + new Date(end).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+
+        absences.unshift({
+            id: Date.now(), month: mons[sd.getMonth()], day: String(sd.getDate()),
+            reason: type, meta: metaStr, days: days,
+            status: 'pending', future: sd >= new Date()
+        });
+
+        closeModal();
+        renderAbsences();
+
+        var toast = document.getElementById('toast');
+        toast.classList.add('show');
+        setTimeout(function(){ toast.classList.remove('show'); }, 3000);
+
+        // Reset form
+        document.getElementById('req-type').value  = '';
+        document.getElementById('req-notes').value = '';
+        document.getElementById('bal-preview').style.display = 'none';
+    }
+</script>
+</body>
+</html>
