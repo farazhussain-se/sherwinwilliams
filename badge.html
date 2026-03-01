@@ -3,361 +3,241 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>My QR Badge – Sherwin-Williams</title>
-
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <title>SW Badge</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-
     <style>
-        * { box-sizing: border-box; }
-        html { overflow: hidden; height: auto; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { overflow: hidden; height: auto; background: transparent; }
         body {
-            margin: 0;
             padding: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 13px;
+        }
+
+        .card {
+            max-width: 360px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
             overflow: hidden;
-            height: auto;
-            background: transparent;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.10);
         }
-        #root { overflow: hidden; height: auto; }
 
-        @keyframes pulse-ring {
-            0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(74,222,128,0.7); }
-            70%  { transform: scale(1);    box-shadow: 0 0 0 8px rgba(74,222,128,0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+        /* Header */
+        .header {
+            background: #1a1a1a;
+            padding: 8px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .pulse { border-radius: 50%; animation: pulse-ring 2s infinite; }
+        .header-left { color: white; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .header-right { color: #9ca3af; font-size: 10px; font-family: monospace; }
 
-        /* Shimmer animation for the scan button */
-        @keyframes shimmer {
-            0%   { background-position: -200% center; }
-            100% { background-position: 200% center; }
+        @keyframes pulse {
+            0%,100% { opacity:1; } 50% { opacity:0.4; }
         }
-        .scan-btn {
-            background: linear-gradient(90deg, #003087 25%, #0055cc 50%, #003087 75%);
-            background-size: 200% auto;
-            animation: shimmer 3s linear infinite;
-            border: none;
+        .dot { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; animation: pulse 2s infinite; display: inline-block; }
+
+        /* Brand bar */
+        .brand { background: #C41230; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
+        .brand-name { color: white; font-size: 13px; font-weight: 900; letter-spacing: 0.08em; }
+        .brand-sub  { color: rgba(255,255,255,0.75); font-size: 9px; }
+        .brand-badge { background: rgba(255,255,255,0.2); color: white; font-size: 9px; font-weight: 800; padding: 3px 8px; border-radius: 6px; }
+
+        /* Profile */
+        .profile { padding: 14px; border-bottom: 1px solid #f3f4f6; }
+        .emp-name { font-size: 20px; font-weight: 900; color: #111827; line-height: 1.15; }
+        .emp-title { font-size: 10px; font-weight: 700; color: #C41230; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+        .emp-dept  { font-size: 9px; color: #6b7280; margin-top: 2px; }
+        .emp-id    { background: #C41230; color: white; border-radius: 8px; padding: 5px 10px; text-align: center; float: right; margin-left: 10px; }
+        .emp-id p  { font-size: 8px; font-weight: 700; letter-spacing: 0.05em; }
+        .emp-id span { font-size: 11px; font-family: monospace; font-weight: 900; }
+
+        /* Workflow selector */
+        .section-label { font-size: 10px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.05em; padding: 10px 14px 6px; }
+        .workflow-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 0 14px 10px; }
+        .wf-btn {
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 10px;
+            padding: 8px 4px;
             cursor: pointer;
-            color: white;
-            font-weight: 800;
-            border-radius: 12px;
+            text-align: center;
+            transition: all 0.15s;
+        }
+        .wf-btn.active { border-color: #C41230; background: #fff1f2; }
+        .wf-btn .wf-icon { font-size: 18px; }
+        .wf-btn .wf-label { font-size: 9px; font-weight: 800; color: #374151; margin-top: 3px; }
+        .wf-btn.active .wf-label { color: #C41230; }
+        .wf-btn .wf-sub { font-size: 8px; color: #9ca3af; margin-top: 2px; line-height: 1.3; }
+
+        /* QR area */
+        .qr-area { display: flex; flex-direction: column; align-items: center; padding: 8px 14px 14px; }
+        #qrcode { border: 3px solid #C41230; border-radius: 12px; padding: 8px; display: inline-block; }
+        #qrcode img, #qrcode canvas { display: block; }
+        .qr-label { font-size: 10px; font-weight: 700; color: #1a1a1a; margin-top: 8px; }
+        .qr-sub   { font-size: 9px; color: #9ca3af; margin-top: 2px; margin-bottom: 10px; }
+
+        /* Open in browser button */
+        .open-btn {
             width: 100%;
-            padding: 14px;
-            font-size: 14px;
-            letter-spacing: 0.03em;
+            padding: 13px;
+            background: #003087;
+            color: white;
+            font-size: 13px;
+            font-weight: 800;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
+            letter-spacing: 0.02em;
         }
-        .scan-btn:active { opacity: 0.85; transform: scale(0.98); }
+        .open-btn:active { opacity: 0.85; }
+        .open-hint { font-size: 9px; color: #9ca3af; text-align: center; margin-top: 6px; }
 
-        .tab-btn {
-            flex: 1;
-            padding: 9px 4px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            font-size: 11px;
-            font-weight: 700;
-            transition: all 0.15s;
+        /* Footer */
+        .footer {
+            background: #1a1a1a;
+            padding: 7px 14px;
+            display: flex;
+            justify-content: space-between;
         }
+        .footer span { color: #6b7280; font-size: 9px; }
+
+        .notice { text-align: center; font-size: 10px; color: #9ca3af; margin-top: 8px; }
     </style>
 </head>
 <body>
-    <div id="root">Loading badge...</div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+<div class="card">
 
-        // ── HARDCODED EMPLOYEE (Sherwin-Williams Plant) ──
-        const EMPLOYEE = {
-            swUserId:    "SW-PLT-30412",
-            firstName:   "Jordan",
-            lastName:    "Rivera",
-            title:       "Paint Production Technician II",
-            department:  "Manufacturing – Batch Production",
-            plant:       "Sherwin-Williams Cleveland Plant",
-            location:    "Cleveland, OH",
-            shift:       "Day | 06:00 – 14:30",
-            accessLevel: "PRODUCTION FLOOR",
-            ppeStatus:   "Compliant",
-            expires:     "2026-12-31",
-            // Workflows this badge supports
-            workflows: [
-                { icon: "🕐", label: "Time Clock",     sub: "Dayforce punch-in/out",    action: "timeclock"  },
-                { icon: "🚪", label: "Site Access",     sub: "Gate & floor entry",        action: "access"     },
-                { icon: "📋", label: "Training Log",    sub: "Record completion",         action: "training"   }
-            ],
-            // Real SW plant certifications (OSHA VPP, ISO 45001, hazmat)
-            certifications: [
-                { label: "OSHA VPP Star",      expires: "2027-06-01", status: "active"   },
-                { label: "ISO 45001",           expires: "2026-09-15", status: "active"   },
-                { label: "Hazmat Handler",      expires: "2026-04-10", status: "expiring" },
-                { label: "Forklift Operator",   expires: "2027-01-20", status: "active"   },
-                { label: "Flammables Safety",   expires: "2026-12-01", status: "active"   },
-                { label: "GHS/SDS Compliance",  expires: "2026-08-01", status: "active"   }
-            ]
-        };
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <span class="dot"></span> BADGE ACTIVE
+        </div>
+        <div class="header-right" id="clock">--:--:--</div>
+    </div>
 
-        // ── SW Brand Colors ──
-        const SW = {
-            red:      '#C41230',
-            darkRed:  '#8B0D22',
-            blue:     '#003087',
-            gray:     '#F5F5F5',
-            darkGray: '#1A1A1A'
-        };
+    <!-- Brand Bar -->
+    <div class="brand">
+        <div>
+            <div class="brand-name">SHERWIN-WILLIAMS</div>
+            <div class="brand-sub">Cleveland Manufacturing Plant</div>
+        </div>
+        <div class="brand-badge">PRODUCTION FLOOR</div>
+    </div>
 
-        const SWBadge = () => {
-            const qrRef       = useRef(null);
-            const [qrDone, setQrDone]       = useState(false);
-            const [timeString, setTimeString] = useState('');
-            const [tab, setTab]               = useState('badge');
-            const [scanTarget, setScanTarget] = useState('timeclock');
+    <!-- Profile -->
+    <div class="profile">
+        <div class="emp-id" style="float:right; margin-left:10px;">
+            <p>SW USER ID</p>
+            <span>SW-PLT-30412</span>
+        </div>
+        <div class="emp-name">Jordan<br>Rivera</div>
+        <div class="emp-title">Production Technician II</div>
+        <div class="emp-dept">Manufacturing – Batch Production · Cleveland, OH</div>
+        <div style="clear:both;"></div>
+    </div>
 
-            // Live clock
-            useEffect(() => {
-                const tick = () => setTimeString(
-                    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                );
-                tick();
-                const t = setInterval(tick, 1000);
-                return () => clearInterval(t);
-            }, []);
+    <!-- Workflow Selector -->
+    <div class="section-label">Select Workflow to Scan</div>
+    <div class="workflow-grid">
+        <div class="wf-btn active" onclick="selectWorkflow('timeclock', this)">
+            <div class="wf-icon">🕐</div>
+            <div class="wf-label">Time Clock</div>
+            <div class="wf-sub">Dayforce punch</div>
+        </div>
+        <div class="wf-btn" onclick="selectWorkflow('access', this)">
+            <div class="wf-icon">🚪</div>
+            <div class="wf-label">Site Access</div>
+            <div class="wf-sub">Gate & floor entry</div>
+        </div>
+        <div class="wf-btn" onclick="selectWorkflow('training', this)">
+            <div class="wf-icon">📋</div>
+            <div class="wf-label">Training</div>
+            <div class="wf-sub">Log completion</div>
+        </div>
+    </div>
 
-            // Build QR payload based on selected workflow
-            const qrPayload = `SW-BADGE|ID:${EMPLOYEE.swUserId}|EMP:${EMPLOYEE.firstName}+${EMPLOYEE.lastName}|WORKFLOW:${scanTarget.toUpperCase()}|PLANT:CLV|TS:${Date.now()}`;
+    <!-- QR Code -->
+    <div class="qr-area">
+        <div id="qrcode"></div>
+        <div class="qr-label" id="qr-label">🕐 Scan for: <span style="color:#C41230">Time Clock</span></div>
+        <div class="qr-sub" id="qr-sub">Dayforce punch-in/out</div>
+        <button class="open-btn" onclick="openInBrowser()">
+            📱 Open in Scanner App ↗
+        </button>
+        <div class="open-hint">Opens MySherwin in your mobile browser</div>
+    </div>
 
-            // Generate QR code
-            useEffect(() => {
-                if (qrRef.current) {
-                    qrRef.current.innerHTML = '';
-                    setQrDone(false);
-                    try {
-                        new QRCode(qrRef.current, {
-                            text: qrPayload,
-                            width: 180,
-                            height: 180,
-                            colorDark:  SW.darkGray,
-                            colorLight: '#FFFFFF',
-                            correctLevel: QRCode.CorrectLevel.H
-                        });
-                        setQrDone(true);
-                    } catch(e) {
-                        qrRef.current.innerHTML = '<p style="color:red;font-size:10px">QR Error</p>';
-                    }
-                }
-            }, [scanTarget]);
+    <!-- Footer -->
+    <div class="footer">
+        <span>Expires: 2026-12-31</span>
+        <span>Powered by MySherwin</span>
+    </div>
 
-            // ── Open in external browser for native QR scanner / Dayforce app flow ──
-            const openInBrowser = () => {
-                const urls = {
-                    timeclock: `https://mysherwin.sherwin.com/timeclock?uid=${EMPLOYEE.swUserId}`,
-                    access:    `https://mysherwin.sherwin.com/access?uid=${EMPLOYEE.swUserId}`,
-                    training:  `https://mysherwin.sherwin.com/training?uid=${EMPLOYEE.swUserId}`
-                };
-                window.open(urls[scanTarget], '_blank', 'noreferrer');
-            };
+</div>
 
-            const activeWorkflow = EMPLOYEE.workflows.find(w => w.action === scanTarget);
+<div class="notice">SW Digital Badge · Do not share or screenshot</div>
 
-            return (
-                <div style={{ maxWidth: '360px', margin: '0 auto' }}>
-                    <div style={{
-                        background: 'white', borderRadius: '20px', overflow: 'hidden',
-                        border: '1px solid #e5e7eb', boxShadow: '0 6px 24px rgba(0,0,0,0.12)'
-                    }}>
+<script>
+    // ── Clock ──
+    function updateClock() {
+        document.getElementById('clock').textContent =
+            new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
 
-                        {/* ── Security Header ── */}
-                        <div style={{ background: SW.darkGray, padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: 'white', fontSize: '11px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span className="pulse" style={{ width: '9px', height: '9px', background: '#4ade80', display: 'inline-block' }}></span>
-                                BADGE ACTIVE
-                            </span>
-                            <span style={{ color: '#9ca3af', fontSize: '10px', fontFamily: 'monospace' }}>{timeString}</span>
-                        </div>
+    // ── QR Code ──
+    var currentWorkflow = 'timeclock';
+    var qrInstance = null;
 
-                        {/* ── SW Red Brand Bar ── */}
-                        <div style={{ background: SW.red, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ color: 'white', fontSize: '13px', fontWeight: '900', letterSpacing: '0.08em' }}>
-                                    SHERWIN-WILLIAMS
-                                </span>
-                                <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '9px', fontWeight: '600', letterSpacing: '0.1em' }}>
-                                    {EMPLOYEE.plant}
-                                </span>
-                            </div>
-                            <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '6px', padding: '3px 8px' }}>
-                                <span style={{ color: 'white', fontSize: '9px', fontWeight: '800', letterSpacing: '0.08em' }}>
-                                    {EMPLOYEE.accessLevel}
-                                </span>
-                            </div>
-                        </div>
+    var workflows = {
+        timeclock: { label: '🕐 Scan for: <span style="color:#C41230">Time Clock</span>', sub: 'Dayforce punch-in/out',   url: 'https://mysherwin.sherwin.com/timeclock?uid=SW-PLT-30412' },
+        access:    { label: '🚪 Scan for: <span style="color:#C41230">Site Access</span>',  sub: 'Gate & floor entry',       url: 'https://mysherwin.sherwin.com/access?uid=SW-PLT-30412'    },
+        training:  { label: '📋 Scan for: <span style="color:#C41230">Training</span>',     sub: 'Record training completion', url: 'https://mysherwin.sherwin.com/training?uid=SW-PLT-30412' }
+    };
 
-                        {/* ── Tabs ── */}
-                        <div style={{ display: 'flex', borderBottom: '1px solid #f3f4f6' }}>
-                            {[
-                                { key: 'badge', label: '🪪 My Badge' },
-                                { key: 'certs', label: '📋 Certs'    }
-                            ].map(t => (
-                                <button key={t.key} className="tab-btn"
-                                    onClick={() => setTab(t.key)}
-                                    style={{
-                                        color: tab === t.key ? SW.red : '#6b7280',
-                                        borderBottom: tab === t.key ? `2px solid ${SW.red}` : '2px solid transparent'
-                                    }}>
-                                    {t.label}
-                                </button>
-                            ))}
-                        </div>
+    function generateQR(workflow) {
+        var payload = 'SW-BADGE|ID:SW-PLT-30412|EMP:Jordan+Rivera|WORKFLOW:' + workflow.toUpperCase() + '|PLANT:CLV';
+        var el = document.getElementById('qrcode');
+        el.innerHTML = '';
+        new QRCode(el, {
+            text: payload,
+            width: 170,
+            height: 170,
+            colorDark: '#1a1a1a',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    }
 
-                        {/* ══════════════════════════
-                            TAB 1: BADGE + QR
-                        ══════════════════════════ */}
-                        {tab === 'badge' && (
-                            <div>
-                                {/* Name block */}
-                                <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid #f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <div>
-                                        <p style={{ margin: '0 0 2px 0', fontSize: '20px', fontWeight: '900', color: '#111827', lineHeight: 1.1 }}>
-                                            {EMPLOYEE.firstName}<br/>{EMPLOYEE.lastName}
-                                        </p>
-                                        <p style={{ margin: '4px 0 2px 0', fontSize: '10px', fontWeight: '700', color: SW.red, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                            {EMPLOYEE.title}
-                                        </p>
-                                        <p style={{ margin: '0 0 2px 0', fontSize: '9px', color: '#6b7280' }}>{EMPLOYEE.department}</p>
-                                        <p style={{ margin: '0 0 6px 0', fontSize: '9px', color: '#9ca3af' }}>📍 {EMPLOYEE.location}</p>
-                                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                                            <Pill color="#dcfce7" text={`✓ PPE ${EMPLOYEE.ppeStatus}`} textColor="#166534" />
-                                            <Pill color="#dbeafe" text={`⏰ ${EMPLOYEE.shift}`} textColor="#1e40af" />
-                                        </div>
-                                    </div>
-                                    <div style={{ background: SW.red, color: 'white', borderRadius: '10px', padding: '6px 10px', textAlign: 'center', flexShrink: 0, marginLeft: '10px' }}>
-                                        <p style={{ margin: 0, fontSize: '8px', fontWeight: '700', letterSpacing: '0.05em' }}>SW USER ID</p>
-                                        <p style={{ margin: '2px 0 0 0', fontSize: '11px', fontFamily: 'monospace', fontWeight: '900' }}>{EMPLOYEE.swUserId}</p>
-                                    </div>
-                                </div>
+    function selectWorkflow(name, btn) {
+        currentWorkflow = name;
+        // Update button styles
+        document.querySelectorAll('.wf-btn').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        // Update labels
+        document.getElementById('qr-label').innerHTML = workflows[name].label;
+        document.getElementById('qr-sub').textContent  = workflows[name].sub;
+        // Regenerate QR
+        generateQR(name);
+    }
 
-                                {/* Workflow Selector */}
-                                <div style={{ padding: '12px 16px 8px' }}>
-                                    <p style={{ margin: '0 0 8px 0', fontSize: '10px', fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                        Select Workflow to Scan
-                                    </p>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
-                                        {EMPLOYEE.workflows.map((wf) => (
-                                            <button key={wf.action}
-                                                onClick={() => setScanTarget(wf.action)}
-                                                style={{
-                                                    border: `2px solid ${scanTarget === wf.action ? SW.red : '#e5e7eb'}`,
-                                                    background: scanTarget === wf.action ? '#fff1f2' : 'white',
-                                                    borderRadius: '10px',
-                                                    padding: '8px 4px',
-                                                    cursor: 'pointer',
-                                                    textAlign: 'center',
-                                                    transition: 'all 0.15s'
-                                                }}>
-                                                <p style={{ margin: '0 0 3px 0', fontSize: '18px' }}>{wf.icon}</p>
-                                                <p style={{ margin: '0 0 2px 0', fontSize: '9px', fontWeight: '800', color: scanTarget === wf.action ? SW.red : '#374151' }}>{wf.label}</p>
-                                                <p style={{ margin: 0, fontSize: '8px', color: '#9ca3af', lineHeight: 1.3 }}>{wf.sub}</p>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+    function openInBrowser() {
+        window.open(workflows[currentWorkflow].url, '_blank', 'noreferrer');
+    }
 
-                                {/* QR Code */}
-                                <div style={{ padding: '8px 16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                    <div style={{
-                                        padding: '10px', background: 'white',
-                                        border: `3px solid ${SW.red}`, borderRadius: '16px',
-                                        boxShadow: '0 2px 12px rgba(196,18,48,0.15)'
-                                    }}>
-                                        <div ref={qrRef}></div>
-                                    </div>
-                                    <p style={{ margin: '6px 0 2px 0', fontSize: '10px', fontWeight: '700', color: SW.darkGray }}>
-                                        {activeWorkflow?.icon} Scan for: <span style={{ color: SW.red }}>{activeWorkflow?.label}</span>
-                                    </p>
-                                    <p style={{ margin: '0 0 10px 0', fontSize: '9px', color: '#9ca3af' }}>{activeWorkflow?.sub}</p>
+    // Initial QR generation
+    generateQR('timeclock');
+</script>
 
-                                    {/* Open in External Browser Button */}
-                                    <button className="scan-btn" onClick={openInBrowser}>
-                                        <span style={{ fontSize: '16px' }}>📱</span>
-                                        Open in Scanner App
-                                        <span style={{ fontSize: '12px', opacity: 0.8 }}>↗</span>
-                                    </button>
-                                    <p style={{ margin: '6px 0 0 0', fontSize: '9px', color: '#9ca3af', textAlign: 'center' }}>
-                                        Opens MySherwin in your mobile browser for full app flow
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ══════════════════════════
-                            TAB 2: CERTIFICATIONS
-                        ══════════════════════════ */}
-                        {tab === 'certs' && (
-                            <div style={{ padding: '12px 16px 16px' }}>
-                                <p style={{ margin: '0 0 10px 0', fontSize: '10px', fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                    Active Certifications
-                                </p>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    {EMPLOYEE.certifications.map((c, i) => {
-                                        const cfg = {
-                                            active:   { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534', badge: '✓ Active',   badgeColor: '#166534'  },
-                                            expiring: { bg: '#fffbeb', border: '#fde68a', text: '#92400e', badge: '⚠ Expiring', badgeColor: '#92400e'  },
-                                            expired:  { bg: '#fef2f2', border: '#fecaca', text: '#991b1b', badge: '✗ Expired',  badgeColor: '#991b1b'  }
-                                        }[c.status];
-                                        return (
-                                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', borderRadius: '10px', background: cfg.bg, border: `1px solid ${cfg.border}` }}>
-                                                <div>
-                                                    <p style={{ margin: '0 0 2px 0', fontSize: '11px', fontWeight: '700', color: '#111827' }}>{c.label}</p>
-                                                    <p style={{ margin: 0, fontSize: '9px', color: '#6b7280' }}>Exp: {c.expires}</p>
-                                                </div>
-                                                <span style={{ fontSize: '9px', fontWeight: '800', color: cfg.badgeColor, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
-                                                    {cfg.badge}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                <div style={{ marginTop: '12px', padding: '10px 12px', borderRadius: '10px', background: '#f0f9ff', border: '1px solid #bae6fd' }}>
-                                    <p style={{ margin: '0 0 2px 0', fontSize: '10px', fontWeight: '700', color: '#0369a1' }}>
-                                        📊 Managed via OSHA VPP + ISO 45001 EHSMS
-                                    </p>
-                                    <p style={{ margin: 0, fontSize: '9px', color: '#0284c7', lineHeight: 1.4 }}>
-                                        Sherwin-Williams tracks all plant certifications through its Environmental Health & Safety Management System. Renewals trigger automatically in MySherwin.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ── Footer ── */}
-                        <div style={{ background: SW.darkGray, padding: '7px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#6b7280', fontSize: '9px' }}>Expires: {EMPLOYEE.expires}</span>
-                            <span style={{ color: '#6b7280', fontSize: '9px' }}>Powered by MySherwin</span>
-                        </div>
-
-                    </div>
-
-                    <p style={{ textAlign: 'center', fontSize: '10px', color: '#9ca3af', marginTop: '8px', marginBottom: '4px' }}>
-                        SW Digital Badge • Do not share or screenshot
-                    </p>
-                </div>
-            );
-        };
-
-        // ── Shared Sub-component ──
-        const Pill = ({ color, text, textColor }) => (
-            <span style={{ background: color, color: textColor, fontSize: '8px', fontWeight: '700', padding: '2px 7px', borderRadius: '99px' }}>
-                {text}
-            </span>
-        );
-
-        ReactDOM.createRoot(document.getElementById('root')).render(<SWBadge />);
-    </script>
 </body>
 </html>
