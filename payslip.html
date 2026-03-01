@@ -7,7 +7,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { overflow: hidden; height: auto; background: transparent; }
-        body { padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; color: #1E293B; }
+        body { padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; color: #1E293B; -webkit-tap-highlight-color: transparent; }
 
         :root {
             --df-blue:   #0071CE;
@@ -31,7 +31,7 @@
         .df-sync { font-size: 9px; color: var(--df-subtle); display: flex; align-items: center; gap: 4px; }
         .df-sync-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
 
-        /* ── Payslip selector row ── */
+        /* ── Period selector ── */
         .ps-select-row {
             display: flex; justify-content: space-between; align-items: center;
             padding: 12px 16px; border-bottom: 1px solid var(--df-border);
@@ -41,131 +41,109 @@
         .ps-period-val   { font-size: 14px; font-weight: 800; color: var(--df-navy); }
         .ps-nav { display: flex; gap: 4px; }
         .ps-nav button {
-            width: 28px; height: 28px; border-radius: 6px;
+            width: 32px; height: 32px; border-radius: 8px;
             border: 1px solid var(--df-border); background: white;
-            cursor: pointer; font-size: 13px; color: var(--df-navy);
+            cursor: pointer; font-size: 14px; color: var(--df-navy);
             display: flex; align-items: center; justify-content: center;
+            -webkit-tap-highlight-color: transparent;
         }
-        .ps-nav button:hover { background: #eff6ff; }
 
-        /* ── Reveal bar ── */
-        .reveal-bar {
+        /* ── Privacy bar ── */
+        .privacy-bar {
             background: #1e293b; padding: 10px 16px;
             display: flex; justify-content: space-between; align-items: center;
         }
-        .reveal-bar-left { display: flex; align-items: center; gap: 8px; }
-        .reveal-bar-left span { font-size: 10px; color: #94a3b8; font-weight: 600; }
-        .reveal-bar-left strong { color: #fbbf24; font-size: 10px; }
+        .privacy-info { display: flex; align-items: center; gap: 6px; }
+        .privacy-info span { font-size: 10px; color: #94a3b8; }
+        .privacy-info strong { color: #fbbf24; font-size: 10px; }
 
-        /* Hold-to-reveal button */
-        .hold-btn {
-            position: relative; overflow: hidden;
+        /* Toggle pill button */
+        .reveal-toggle {
+            display: flex; align-items: center; gap: 8px;
             background: #334155; border: 1px solid #475569;
-            border-radius: 8px; padding: 7px 14px;
-            color: white; font-size: 11px; font-weight: 700;
-            cursor: pointer; display: flex; align-items: center; gap: 6px;
-            user-select: none; -webkit-user-select: none;
-            white-space: nowrap; transition: background 0.15s;
+            border-radius: 99px; padding: 6px 14px 6px 8px;
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
+            transition: background 0.2s;
+            min-height: 44px; /* iOS tap target */
         }
-        .hold-btn:active { background: #475569; }
-        .hold-btn .eye-icon { font-size: 14px; }
+        .reveal-toggle:active { background: #475569; }
+        .reveal-toggle.on { background: #0071CE; border-color: #0071CE; }
 
-        /* Progress fill inside button */
-        .hold-progress {
-            position: absolute; left: 0; top: 0; bottom: 0;
-            background: rgba(0,113,206,0.35);
-            width: 0%; transition: none; border-radius: 8px;
+        .toggle-eye { font-size: 16px; width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; }
+        .toggle-text { font-size: 11px; font-weight: 700; color: white; white-space: nowrap; }
+
+        /* ── Blur wrapper ── */
+        .ps-blurable { position: relative; }
+        .blur-cover {
+            position: absolute; inset: 0; z-index: 10;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            background: rgba(248,250,252,0.55);
+            transition: opacity 0.4s ease;
             pointer-events: none;
         }
-        .hold-progress.filling { transition: width 1.6s linear; width: 100%; }
+        .blur-cover.hidden { opacity: 0; pointer-events: none; }
 
-        /* ── Payslip card ── */
-        .ps-card {
-            margin: 12px 16px;
-            border: 1px solid var(--df-border);
-            border-radius: 12px; overflow: hidden;
-        }
-
-        /* Blur overlay system */
-        .ps-blurable { position: relative; }
-        .ps-blurable .blur-cover {
-            position: absolute; inset: 0;
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            background: rgba(248,250,252,0.6);
-            z-index: 10; border-radius: 0;
-            transition: opacity 0.4s ease;
-        }
-        .ps-blurable.revealed .blur-cover { opacity: 0; pointer-events: none; }
-
-        /* Net pay hero */
+        /* ── Net pay hero ── */
         .ps-hero {
             background: var(--df-navy); padding: 16px;
             display: flex; justify-content: space-between; align-items: center;
         }
-        .ps-hero-left .ps-hero-label { font-size: 10px; color: rgba(255,255,255,0.6); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
-        .ps-hero-left .ps-net-pay    { font-size: 28px; font-weight: 900; color: white; line-height: 1.1; margin-top: 2px; }
-        .ps-hero-left .ps-net-sub    { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px; }
-        .ps-hero-right { text-align: right; }
-        .ps-hero-right .ps-status { font-size: 9px; font-weight: 800; background: #22c55e; color: white; padding: 3px 8px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.05em; }
-        .ps-hero-right .ps-pay-date { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 6px; }
-        .ps-hero-right .ps-pay-date strong { color: white; }
+        .ps-hero-label { font-size: 10px; color: rgba(255,255,255,0.6); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+        .ps-net-pay    { font-size: 30px; font-weight: 900; color: white; line-height: 1.1; margin-top: 2px; }
+        .ps-net-sub    { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+        .ps-status { font-size: 9px; font-weight: 800; background: #22c55e; color: white; padding: 3px 8px; border-radius: 99px; text-transform: uppercase; }
+        .ps-pay-date { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 6px; text-align: right; }
+        .ps-pay-date strong { color: white; }
 
-        /* Earnings / Deductions sections */
+        /* ── Payslip detail card ── */
+        .ps-card { margin: 12px 16px; border: 1px solid var(--df-border); border-radius: 12px; overflow: hidden; }
         .ps-section { padding: 12px 14px; border-bottom: 1px solid var(--df-border); }
         .ps-section:last-child { border-bottom: none; }
-        .ps-section-title {
-            font-size: 9px; font-weight: 800; color: var(--df-subtle);
-            text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px;
-        }
+        .ps-section-title { font-size: 9px; font-weight: 800; color: var(--df-subtle); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
         .ps-line { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 0; }
         .ps-line-label { font-size: 11px; color: #374151; }
-        .ps-line-val   { font-size: 11px; font-weight: 700; color: #111827; font-family: monospace; }
-        .ps-line-val.deduct { color: #dc2626; }
-        .ps-line.subtotal { border-top: 1px solid var(--df-border); margin-top: 4px; padding-top: 6px; }
-        .ps-line.subtotal .ps-line-label { font-weight: 700; color: var(--df-navy); font-size: 11px; }
-        .ps-line.subtotal .ps-line-val   { font-size: 12px; color: var(--df-navy); }
+        .ps-line-val   { font-size: 11px; font-weight: 700; color: #111827; font-family: 'Courier New', monospace; }
+        .ps-line-val.neg { color: #dc2626; }
+        .ps-line.total  { border-top: 1px solid var(--df-border); margin-top: 4px; padding-top: 6px; }
+        .ps-line.total .ps-line-label { font-weight: 700; color: var(--df-navy); font-size: 11px; }
+        .ps-line.total .ps-line-val   { font-size: 12px; color: var(--df-navy); }
 
-        /* YTD bar */
-        .ytd-section { padding: 12px 14px; background: var(--df-bg); }
-        .ytd-title { font-size: 9px; font-weight: 800; color: var(--df-subtle); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
-        .ytd-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-        .ytd-label { font-size: 10px; color: var(--df-subtle); }
-        .ytd-val   { font-size: 11px; font-weight: 800; color: var(--df-navy); font-family: monospace; }
-        .ytd-bar-bg   { background: #e2e8f0; border-radius: 99px; height: 4px; margin-bottom: 8px; overflow: hidden; }
-        .ytd-bar-fill { height: 100%; border-radius: 99px; background: var(--df-blue); }
+        /* ── YTD ── */
+        .ytd-wrap { margin: 0 16px 12px; border: 1px solid var(--df-border); border-radius: 10px; background: var(--df-bg); padding: 12px 14px; }
+        .ytd-title { font-size: 9px; font-weight: 800; color: var(--df-subtle); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; }
+        .ytd-row   { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .ytd-lbl   { font-size: 10px; color: var(--df-subtle); }
+        .ytd-val   { font-size: 11px; font-weight: 800; color: var(--df-navy); font-family: 'Courier New', monospace; }
+        .ytd-bar   { background: #e2e8f0; border-radius: 99px; height: 4px; margin-bottom: 8px; overflow: hidden; }
+        .ytd-fill  { height: 100%; border-radius: 99px; }
 
-        /* Payslip list */
-        .ps-list-header {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 14px 16px 6px;
-        }
-        .ps-list-title { font-size: 13px; font-weight: 700; color: var(--df-navy); }
-        .ps-list-sub   { font-size: 10px; color: var(--df-subtle); }
-        .ps-history-row {
+        /* ── Pay history ── */
+        .hist-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 8px; }
+        .hist-title  { font-size: 13px; font-weight: 700; color: var(--df-navy); }
+        .hist-sub    { font-size: 10px; color: var(--df-subtle); }
+
+        .hist-row {
             display: flex; align-items: center; gap: 10px;
-            padding: 10px 16px; border-bottom: 1px solid var(--df-border);
-            cursor: pointer; transition: background 0.1s;
+            padding: 11px 16px; border-bottom: 1px solid var(--df-border);
+            min-height: 52px;
         }
-        .ps-history-row:hover { background: #f8faff; }
-        .ps-history-row:last-child { border-bottom: none; }
-        .ps-hist-icon { width: 32px; height: 32px; border-radius: 8px; background: #eff6ff; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
-        .ps-hist-info { flex: 1; }
-        .ps-hist-period { font-size: 11px; font-weight: 700; color: #111827; }
-        .ps-hist-date   { font-size: 9px; color: var(--df-subtle); margin-top: 1px; }
-        .ps-hist-amount { font-size: 13px; font-weight: 900; color: var(--df-navy); font-family: monospace; }
-        .ps-hist-dl { font-size: 9px; color: var(--df-blue); font-weight: 600; margin-top: 1px; cursor: pointer; }
+        .hist-row:last-child { border-bottom: none; }
+        .hist-icon { width: 34px; height: 34px; border-radius: 8px; background: #eff6ff; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+        .hist-period { font-size: 11px; font-weight: 700; color: #111827; }
+        .hist-date   { font-size: 9px; color: var(--df-subtle); margin-top: 2px; }
+        .hist-amt    { font-size: 13px; font-weight: 900; color: var(--df-navy); font-family: 'Courier New', monospace; }
+        .hist-link   { font-size: 9px; color: var(--df-blue); font-weight: 600; margin-top: 2px; }
 
-        /* Footer */
-        .df-footer { background: #f1f5f9; border-top: 1px solid var(--df-border); padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; }
+        /* ── Footer ── */
+        .df-footer { background: #f1f5f9; border-top: 1px solid var(--df-border); padding: 9px 16px; display: flex; justify-content: space-between; }
         .df-footer span { font-size: 9px; color: var(--df-label); }
     </style>
 </head>
 <body>
-
 <div class="widget">
 
-    <!-- Dayforce Header -->
+    <!-- Header -->
     <div class="df-header">
         <div class="df-header-title">
             <span class="df-logo-chip">DAYFORCE</span>
@@ -184,135 +162,128 @@
             <div class="ps-period-val" id="period-label">Feb 16 – Feb 28, 2026</div>
         </div>
         <div class="ps-nav">
-            <button onclick="changePeriod(-1)" title="Previous">‹</button>
-            <button onclick="changePeriod(1)"  title="Next">›</button>
+            <button onclick="changePeriod(-1)">‹</button>
+            <button onclick="changePeriod(1)">›</button>
         </div>
     </div>
 
-    <!-- Reveal Bar -->
-    <div class="reveal-bar">
-        <div class="reveal-bar-left">
-            <span>🔒 <strong>Hold to reveal</strong> your payslip</span>
+    <!-- Privacy Bar -->
+    <div class="privacy-bar">
+        <div class="privacy-info">
+            <span id="privacy-status">🔒 <strong>Payslip hidden</strong></span>
         </div>
-        <button class="hold-btn" id="hold-btn"
-            onmousedown="startHold()"  onmouseup="endHold()"   onmouseleave="endHold()"
-            ontouchstart="startHold()" ontouchend="endHold()"  ontouchcancel="endHold()">
-            <div class="hold-progress" id="hold-progress"></div>
-            <span class="eye-icon" id="eye-icon">👁</span>
-            <span id="hold-label">Hold to View</span>
-        </button>
+        <div class="reveal-toggle" id="reveal-toggle" onclick="toggleReveal()">
+            <div class="toggle-eye" id="toggle-eye">👁</div>
+            <span class="toggle-text" id="toggle-text">Tap to Reveal</span>
+        </div>
     </div>
 
-    <!-- Payslip Card (blurred by default) -->
-    <div class="ps-blurable" id="ps-blurable">
+    <!-- Blurable payslip body -->
+    <div class="ps-blurable">
         <div class="blur-cover" id="blur-cover"></div>
 
-        <!-- Net Pay Hero -->
-        <div class="ps-card">
-            <div class="ps-hero">
-                <div class="ps-hero-left">
-                    <div class="ps-hero-label">Net Pay</div>
-                    <div class="ps-net-pay" id="net-pay">$1,847.62</div>
-                    <div class="ps-net-sub">Bi-weekly · Direct Deposit</div>
-                </div>
-                <div class="ps-hero-right">
-                    <div class="ps-status">Paid</div>
-                    <div class="ps-pay-date">Pay Date<br><strong id="pay-date">Mar 3, 2026</strong></div>
-                </div>
+        <!-- Hero -->
+        <div style="background: var(--df-navy); padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <div class="ps-hero-label">Net Pay</div>
+                <div class="ps-net-pay" id="net-pay">$1,847.62</div>
+                <div class="ps-net-sub">Bi-weekly · Direct Deposit</div>
             </div>
+            <div style="text-align:right">
+                <div class="ps-status">Paid</div>
+                <div class="ps-pay-date">Pay Date<br><strong id="pay-date">Mar 3, 2026</strong></div>
+            </div>
+        </div>
 
-            <!-- Earnings -->
+        <!-- Detail Card -->
+        <div class="ps-card">
             <div class="ps-section">
                 <div class="ps-section-title">Earnings</div>
-                <div class="ps-line"><span class="ps-line-label">Regular Pay (80 hrs)</span><span class="ps-line-val">$1,792.00</span></div>
-                <div class="ps-line"><span class="ps-line-label">Shift Differential (Eve.)</span><span class="ps-line-val">$84.00</span></div>
+                <div class="ps-line"><span class="ps-line-label">Regular Pay (80 hrs @ $22.40)</span><span class="ps-line-val">$1,792.00</span></div>
+                <div class="ps-line"><span class="ps-line-label">Evening Shift Differential</span><span class="ps-line-val">$84.00</span></div>
                 <div class="ps-line"><span class="ps-line-label">Holiday Pay</span><span class="ps-line-val">$0.00</span></div>
-                <div class="ps-line subtotal"><span class="ps-line-label">Gross Pay</span><span class="ps-line-val">$2,476.00</span></div>
+                <div class="ps-line total"><span class="ps-line-label">Gross Pay</span><span class="ps-line-val">$2,476.00</span></div>
             </div>
-
-            <!-- Deductions -->
             <div class="ps-section">
-                <div class="ps-section-title">Deductions</div>
-                <div class="ps-line"><span class="ps-line-label">Federal Income Tax</span><span class="ps-line-val deduct">-$285.42</span></div>
-                <div class="ps-line"><span class="ps-line-label">State Tax (OH)</span><span class="ps-line-val deduct">-$98.14</span></div>
-                <div class="ps-line"><span class="ps-line-label">Social Security</span><span class="ps-line-val deduct">-$153.51</span></div>
-                <div class="ps-line"><span class="ps-line-label">Medicare</span><span class="ps-line-val deduct">-$35.90</span></div>
-                <div class="ps-line"><span class="ps-line-label">Medical (BCBS)</span><span class="ps-line-val deduct">-$42.18</span></div>
-                <div class="ps-line"><span class="ps-line-label">Dental / Vision</span><span class="ps-line-val deduct">-$8.50</span></div>
-                <div class="ps-line"><span class="ps-line-label">401(k) 4%</span><span class="ps-line-val deduct">-$99.04</span></div>
-                <div class="ps-line subtotal"><span class="ps-line-label">Total Deductions</span><span class="ps-line-val deduct">-$622.69</span></div>
+                <div class="ps-section-title">Taxes &amp; Deductions</div>
+                <div class="ps-line"><span class="ps-line-label">Federal Income Tax</span><span class="ps-line-val neg">–$285.42</span></div>
+                <div class="ps-line"><span class="ps-line-label">State Income Tax (OH)</span><span class="ps-line-val neg">–$98.14</span></div>
+                <div class="ps-line"><span class="ps-line-label">Social Security (6.2%)</span><span class="ps-line-val neg">–$153.51</span></div>
+                <div class="ps-line"><span class="ps-line-label">Medicare (1.45%)</span><span class="ps-line-val neg">–$35.90</span></div>
+                <div class="ps-line"><span class="ps-line-label">Medical – BCBS</span><span class="ps-line-val neg">–$42.18</span></div>
+                <div class="ps-line"><span class="ps-line-label">Dental / Vision</span><span class="ps-line-val neg">–$8.50</span></div>
+                <div class="ps-line"><span class="ps-line-label">401(k) Contribution 4%</span><span class="ps-line-val neg">–$99.04</span></div>
+                <div class="ps-line total"><span class="ps-line-label">Total Deductions</span><span class="ps-line-val neg">–$622.69</span></div>
             </div>
-
-            <!-- Hours -->
             <div class="ps-section">
-                <div class="ps-section-title">Hours Summary</div>
+                <div class="ps-section-title">Hours</div>
                 <div class="ps-line"><span class="ps-line-label">Regular Hours</span><span class="ps-line-val">80.0</span></div>
                 <div class="ps-line"><span class="ps-line-label">Overtime Hours</span><span class="ps-line-val">0.0</span></div>
                 <div class="ps-line"><span class="ps-line-label">PTO Used</span><span class="ps-line-val">0.0</span></div>
             </div>
         </div>
 
-        <!-- YTD Summary -->
-        <div class="ytd-section" style="margin:0 16px 12px; border-radius:10px; border:1px solid var(--df-border);">
-            <div class="ytd-title">Year-to-Date Summary</div>
-            <div class="ytd-row"><span class="ytd-label">Gross Earnings</span><span class="ytd-val">$9,904.00</span></div>
-            <div class="ytd-bar-bg"><div class="ytd-bar-fill" style="width:19%"></div></div>
-            <div class="ytd-row"><span class="ytd-label">Total Deductions</span><span class="ytd-val">$2,490.76</span></div>
-            <div class="ytd-bar-bg"><div class="ytd-bar-fill" style="width:19%; background:#dc2626;"></div></div>
-            <div class="ytd-row"><span class="ytd-label">Net Pay YTD</span><span class="ytd-val">$7,390.48</span></div>
-            <div class="ytd-bar-bg"><div class="ytd-bar-fill" style="width:19%; background:#00844B;"></div></div>
+        <!-- YTD -->
+        <div class="ytd-wrap">
+            <div class="ytd-title">Year-to-Date</div>
+            <div class="ytd-row"><span class="ytd-lbl">Gross Earnings</span><span class="ytd-val">$9,904.00</span></div>
+            <div class="ytd-bar"><div class="ytd-fill" style="width:19%;background:var(--df-blue)"></div></div>
+            <div class="ytd-row"><span class="ytd-lbl">Total Deductions</span><span class="ytd-val">$2,490.76</span></div>
+            <div class="ytd-bar"><div class="ytd-fill" style="width:19%;background:#dc2626"></div></div>
+            <div class="ytd-row"><span class="ytd-lbl">Net Pay YTD</span><span class="ytd-val">$7,390.48</span></div>
+            <div class="ytd-bar"><div class="ytd-fill" style="width:19%;background:var(--df-green)"></div></div>
         </div>
 
-    </div><!-- /ps-blurable -->
+    </div><!-- /blurable -->
 
-    <!-- Prior Payslips -->
-    <div class="ps-list-header">
-        <div class="ps-list-title">Pay History</div>
-        <div class="ps-list-sub">Last 4 periods</div>
+    <!-- Pay History -->
+    <div class="hist-header">
+        <div class="hist-title">Pay History</div>
+        <div class="hist-sub">Last 4 periods</div>
     </div>
 
-    <div class="ps-history-row">
-        <div class="ps-hist-icon">📄</div>
-        <div class="ps-hist-info">
-            <div class="ps-hist-period">Feb 1 – Feb 15, 2026</div>
-            <div class="ps-hist-date">Paid Feb 20, 2026 · Direct Deposit</div>
+    <div class="hist-row">
+        <div class="hist-icon">📄</div>
+        <div style="flex:1">
+            <div class="hist-period">Feb 1 – Feb 15, 2026</div>
+            <div class="hist-date">Paid Feb 20, 2026 · Direct Deposit</div>
         </div>
         <div style="text-align:right">
-            <div class="ps-hist-amount">$1,821.14</div>
-            <div class="ps-hist-dl">⬇ View in Dayforce</div>
+            <div class="hist-amt">$1,821.14</div>
+            <div class="hist-link">⬇ View in Dayforce</div>
         </div>
     </div>
-    <div class="ps-history-row">
-        <div class="ps-hist-icon">📄</div>
-        <div class="ps-hist-info">
-            <div class="ps-hist-period">Jan 16 – Jan 31, 2026</div>
-            <div class="ps-hist-date">Paid Feb 5, 2026 · Direct Deposit</div>
+    <div class="hist-row">
+        <div class="hist-icon">📄</div>
+        <div style="flex:1">
+            <div class="hist-period">Jan 16 – Jan 31, 2026</div>
+            <div class="hist-date">Paid Feb 5, 2026 · Direct Deposit</div>
         </div>
         <div style="text-align:right">
-            <div class="ps-hist-amount">$1,847.62</div>
-            <div class="ps-hist-dl">⬇ View in Dayforce</div>
+            <div class="hist-amt">$1,847.62</div>
+            <div class="hist-link">⬇ View in Dayforce</div>
         </div>
     </div>
-    <div class="ps-history-row">
-        <div class="ps-hist-icon">📄</div>
-        <div class="ps-hist-info">
-            <div class="ps-hist-period">Jan 1 – Jan 15, 2026</div>
-            <div class="ps-hist-date">Paid Jan 22, 2026 · Direct Deposit</div>
+    <div class="hist-row">
+        <div class="hist-icon">📄</div>
+        <div style="flex:1">
+            <div class="hist-period">Jan 1 – Jan 15, 2026</div>
+            <div class="hist-date">Paid Jan 22, 2026 · Direct Deposit</div>
         </div>
         <div style="text-align:right">
-            <div class="ps-hist-amount">$1,903.88</div>
-            <div class="ps-hist-dl">⬇ View in Dayforce</div>
+            <div class="hist-amt">$1,903.88</div>
+            <div class="hist-link">⬇ View in Dayforce</div>
         </div>
     </div>
-    <div class="ps-history-row">
-        <div class="ps-hist-icon">📄</div>
-        <div class="ps-hist-info">
-            <div class="ps-hist-period">Dec 16 – Dec 31, 2025</div>
-            <div class="ps-hist-date">Paid Jan 7, 2026 · Direct Deposit</div>
+    <div class="hist-row">
+        <div class="hist-icon">📄</div>
+        <div style="flex:1">
+            <div class="hist-period">Dec 16 – Dec 31, 2025</div>
+            <div class="hist-date">Paid Jan 7, 2026 · Direct Deposit</div>
         </div>
         <div style="text-align:right">
-            <div class="ps-hist-amount">$2,104.30</div>
-            <div class="ps-hist-dl">⬇ View in Dayforce</div>
+            <div class="hist-amt">$2,104.30</div>
+            <div class="hist-link">⬇ View in Dayforce</div>
         </div>
     </div>
 
@@ -325,30 +296,31 @@
 </div>
 
 <script>
-    // ── Timestamps ──
+    // Timestamps
     var now = new Date();
     document.getElementById('sync-time').textContent =
         'Synced ' + now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
     document.getElementById('footer-ts').textContent =
         now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 
-    // ── Period navigation ──
+    // Period nav
     var periods = [
-        { label: 'Dec 16 – Dec 31, 2025', payDate: 'Jan 7, 2026',  net: '$2,104.30' },
-        { label: 'Jan 1 – Jan 15, 2026',  payDate: 'Jan 22, 2026', net: '$1,903.88' },
-        { label: 'Jan 16 – Jan 31, 2026', payDate: 'Feb 5, 2026',  net: '$1,847.62' },
-        { label: 'Feb 1 – Feb 15, 2026',  payDate: 'Feb 20, 2026', net: '$1,821.14' },
-        { label: 'Feb 16 – Feb 28, 2026', payDate: 'Mar 3, 2026',  net: '$1,847.62' }
+        { label:'Dec 16 – Dec 31, 2025', payDate:'Jan 7, 2026',  net:'$2,104.30' },
+        { label:'Jan 1 – Jan 15, 2026',  payDate:'Jan 22, 2026', net:'$1,903.88' },
+        { label:'Jan 16 – Jan 31, 2026', payDate:'Feb 5, 2026',  net:'$1,847.62' },
+        { label:'Feb 1 – Feb 15, 2026',  payDate:'Feb 20, 2026', net:'$1,821.14' },
+        { label:'Feb 16 – Feb 28, 2026', payDate:'Mar 3, 2026',  net:'$1,847.62' }
     ];
     var periodIdx = 4;
+    var revealed  = false;
 
     function renderPeriod() {
         var p = periods[periodIdx];
         document.getElementById('period-label').textContent = p.label;
         document.getElementById('pay-date').textContent     = p.payDate;
         document.getElementById('net-pay').textContent      = p.net;
-        // Re-blur on period change
-        setRevealed(false);
+        // Always re-hide when switching period
+        if (revealed) toggleReveal();
     }
 
     function changePeriod(dir) {
@@ -356,54 +328,29 @@
         renderPeriod();
     }
 
-    // ── Hold-to-reveal ──
-    var holdTimer   = null;
-    var holdTimeout = null;
-    var isRevealed  = false;
-    var HOLD_MS     = 1600;
+    // Single-tap toggle
+    function toggleReveal() {
+        revealed = !revealed;
 
-    function setRevealed(state) {
-        isRevealed = state;
-        var blurable = document.getElementById('ps-blurable');
-        var label    = document.getElementById('hold-label');
-        var eye      = document.getElementById('eye-icon');
+        var cover  = document.getElementById('blur-cover');
+        var toggle = document.getElementById('reveal-toggle');
+        var eye    = document.getElementById('toggle-eye');
+        var text   = document.getElementById('toggle-text');
+        var status = document.getElementById('privacy-status');
 
-        if (state) {
-            blurable.classList.add('revealed');
-            label.textContent = 'Release to Hide';
-            eye.textContent   = '🙈';
+        if (revealed) {
+            cover.classList.add('hidden');
+            toggle.classList.add('on');
+            eye.textContent    = '🙈';
+            text.textContent   = 'Tap to Hide';
+            status.innerHTML   = '🔓 <strong style="color:#4ade80">Payslip visible</strong>';
         } else {
-            blurable.classList.remove('revealed');
-            label.textContent = 'Hold to View';
-            eye.textContent   = '👁';
+            cover.classList.remove('hidden');
+            toggle.classList.remove('on');
+            eye.textContent    = '👁';
+            text.textContent   = 'Tap to Reveal';
+            status.innerHTML   = '🔒 <strong>Payslip hidden</strong>';
         }
-    }
-
-    function startHold() {
-        if (isRevealed) { setRevealed(false); return; }
-
-        // Animate progress bar
-        var prog = document.getElementById('hold-progress');
-        prog.style.transition = 'none';
-        prog.style.width = '0%';
-        // Force reflow
-        prog.getBoundingClientRect();
-        prog.classList.add('filling');
-
-        holdTimeout = setTimeout(function() {
-            setRevealed(true);
-            prog.style.transition = 'none';
-            prog.style.width = '0%';
-            prog.classList.remove('filling');
-        }, HOLD_MS);
-    }
-
-    function endHold() {
-        if (holdTimeout) { clearTimeout(holdTimeout); holdTimeout = null; }
-        var prog = document.getElementById('hold-progress');
-        prog.style.transition = 'none';
-        prog.style.width = '0%';
-        prog.classList.remove('filling');
     }
 
     renderPeriod();
