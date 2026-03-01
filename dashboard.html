@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW Store Manager – Oracle EBS</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; background: transparent; }
+
+        /* ── Collapsed teaser ── */
+        .teaser {
+            width: 100%; height: 80px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 10px;
+            display: flex; align-items: center;
+            padding: 0 20px; gap: 0;
+            cursor: pointer;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+            transition: box-shadow 0.2s;
+            overflow: hidden;
+            user-select: none;
+        }
+        .teaser:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.28); }
+
+        .teaser-brand {
+            display: flex; align-items: center; gap: 10px;
+            border-right: 1px solid rgba(255,255,255,0.12);
+            padding-right: 18px; margin-right: 18px; flex-shrink: 0;
+        }
+        .teaser-brand .sw-dot {
+            width: 10px; height: 10px; border-radius: 50%; background: #C8102E;
+            box-shadow: 0 0 6px #C8102E;
+        }
+        .teaser-brand span { color: white; font-size: 13px; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap; }
+
+        .teaser-kpis { display: flex; align-items: center; gap: 24px; flex: 1; overflow: hidden; }
+        .t-kpi { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; flex-shrink: 0; }
+        .t-kpi .tk-label { font-size: 9px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.06em; }
+        .t-kpi .tk-val   { font-size: 15px; font-weight: 800; color: white; }
+        .t-kpi .tk-delta { font-size: 10px; font-weight: 700; }
+        .up   { color: #4ade80; }
+        .down { color: #f87171; }
+
+        .t-divider { width: 1px; height: 36px; background: rgba(255,255,255,0.1); flex-shrink: 0; }
+
+        .teaser-expand {
+            margin-left: auto; flex-shrink: 0;
+            background: rgba(200,16,46,0.25); border: 1px solid rgba(200,16,46,0.4);
+            border-radius: 6px; color: white; font-size: 11px; font-weight: 700;
+            padding: 6px 12px; cursor: pointer; white-space: nowrap;
+            transition: background 0.15s;
+        }
+        .teaser-expand:hover { background: rgba(200,16,46,0.5); }
+
+        /* ── Dashboard wrapper ── */
+        .dashboard {
+            width: 100%; max-height: 620px;
+            background: #F0F2F5;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.14);
+            display: flex; flex-direction: column;
+        }
+
+        /* ── EBS-style top bar ── */
+        .db-topbar {
+            background: linear-gradient(90deg, #1a1a2e 0%, #16213e 100%);
+            padding: 10px 16px;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-shrink: 0;
+        }
+        .db-topbar-left { display: flex; align-items: center; gap: 10px; }
+        .db-topbar-left .ebs-label {
+            font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.4);
+            text-transform: uppercase; letter-spacing: 0.1em; border-right: 1px solid rgba(255,255,255,0.15); padding-right: 10px;
+        }
+        .db-topbar-left .store-name { color: white; font-size: 14px; font-weight: 800; }
+        .db-topbar-left .store-sub  { color: rgba(255,255,255,0.5); font-size: 10px; margin-top: 1px; }
+
+        .db-topbar-right { display: flex; align-items: center; gap: 10px; }
+        .live-chip { display: flex; align-items: center; gap: 5px; background: rgba(40,167,69,0.2); border: 1px solid rgba(40,167,69,0.4); border-radius: 99px; padding: 3px 10px; }
+        .live-dot  { width: 6px; height: 6px; border-radius: 50%; background: #28A745; animation: blink 1.8s infinite; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .live-chip span { font-size: 9px; color: #4ade80; font-weight: 700; }
+        .close-btn { width: 28px; height: 28px; border-radius: 6px; background: rgba(255,255,255,0.08); border: none; color: rgba(255,255,255,0.6); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .close-btn:hover { background: rgba(200,16,46,0.4); color: white; }
+
+        /* ── KPI ribbon ── */
+        .kpi-ribbon {
+            background: white;
+            border-bottom: 1px solid #dde1e7;
+            padding: 10px 16px;
+            display: flex; gap: 8px; flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+        .kpi-chip {
+            display: flex; flex-direction: column;
+            background: #F8FAFC; border: 1px solid #E2E8F0;
+            border-radius: 8px; padding: 8px 14px;
+            flex: 1; min-width: 110px;
+        }
+        .kpi-chip .kc-label { font-size: 9px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-bottom: 3px; }
+        .kpi-chip .kc-val   { font-size: 18px; font-weight: 900; color: #1e293b; line-height: 1; }
+        .kpi-chip .kc-sub   { font-size: 10px; margin-top: 3px; font-weight: 600; }
+        .kpi-chip.red-accent { border-left: 3px solid #C8102E; }
+
+        /* ── 3-column grid ── */
+        .db-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            padding: 10px 16px 14px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        @media (max-width: 768px) {
+            .db-grid { grid-template-columns: 1fr; }
+            .teaser-kpis .t-divider:nth-child(n+4) { display: none; }
+            .teaser-kpis .t-kpi:nth-child(n+5) { display: none; }
+        }
+
+        /* ── Tile ── */
+        .tile {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            transition: box-shadow 0.15s, transform 0.15s;
+        }
+        .tile:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.09); transform: translateY(-1px); }
+
+        .tile-header {
+            background: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .tile-header .th-title { font-size: 11px; font-weight: 800; color: #334155; text-transform: uppercase; letter-spacing: 0.06em; }
+        .tile-header .th-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 99px; }
+        .badge-green  { background: #dcfce7; color: #166534; }
+        .badge-yellow { background: #fef3c7; color: #92400e; }
+        .badge-red    { background: #fee2e2; color: #991b1b; }
+        .badge-blue   { background: #dbeafe; color: #1e40af; }
+
+        .tile-body { padding: 10px 12px; }
+
+        /* Inventory rows */
+        .inv-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f8fafc; }
+        .inv-row:last-child { border-bottom: none; }
+        .inv-name   { font-size: 11px; font-weight: 600; color: #374151; flex: 1; }
+        .inv-bar-wrap { flex: 2; }
+        .inv-bar-bg   { background: #e2e8f0; border-radius: 99px; height: 6px; overflow: hidden; }
+        .inv-bar-fill { height: 100%; border-radius: 99px; }
+        .inv-pct    { font-size: 10px; font-weight: 800; width: 32px; text-align: right; }
+        .inv-days   { font-size: 9px; color: #94a3b8; width: 38px; text-align: right; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .sd-green  { background: #28A745; }
+        .sd-yellow { background: #FFC107; }
+        .sd-red    { background: #DC3545; }
+
+        /* Ops rows */
+        .ops-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid #f8fafc; }
+        .ops-row:last-child { border-bottom: none; }
+        .ops-label { font-size: 11px; color: #4b5563; }
+        .ops-val   { font-size: 12px; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 5px; }
+        .ops-sub   { font-size: 9px; color: #94a3b8; font-weight: 400; }
+
+        /* Sparkline */
+        .sparkline { display: flex; align-items: flex-end; gap: 2px; height: 20px; }
+        .spark-bar { width: 5px; border-radius: 2px 2px 0 0; background: #C8102E; opacity: 0.7; }
+
+        /* Action items */
+        .action-item {
+            display: flex; align-items: flex-start; gap: 8px;
+            padding: 7px 0; border-bottom: 1px solid #f8fafc;
+        }
+        .action-item:last-child { border-bottom: none; }
+        .action-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+        .action-text { font-size: 11px; color: #374151; line-height: 1.4; flex: 1; }
+        .action-text strong { color: #1e293b; font-weight: 700; }
+        .action-priority { font-size: 8px; font-weight: 800; padding: 2px 5px; border-radius: 4px; flex-shrink: 0; margin-top: 2px; }
+        .pri-high { background: #fee2e2; color: #991b1b; }
+        .pri-med  { background: #fef3c7; color: #92400e; }
+        .pri-low  { background: #dbeafe; color: #1e40af; }
+
+        /* Staff rows */
+        .staff-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #f8fafc; }
+        .staff-row:last-child { border-bottom: none; }
+        .staff-name { font-size: 11px; font-weight: 600; color: #374151; }
+        .staff-role { font-size: 9px; color: #94a3b8; }
+        .staff-status { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 99px; }
+
+        /* Scrollbar */
+        .db-grid::-webkit-scrollbar { width: 4px; }
+        .db-grid::-webkit-scrollbar-track { background: transparent; }
+        .db-grid::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+
+        /* Footer */
+        .db-footer {
+            background: #f8fafc; border-top: 1px solid #e2e8f0;
+            padding: 6px 16px; display: flex; justify-content: space-between; align-items: center;
+            flex-shrink: 0;
+        }
+        .db-footer span { font-size: 9px; color: #94a3b8; }
+        .ebs-tag { background: #1e3a5f; color: #93c5fd; font-size: 8px; font-weight: 700; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.05em; }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const STORE = {
+    name: "Cleveland #247",
+    region: "Great Lakes Region · District 4",
+    ytdSales: "$2.14M",
+    ytdGrowth: "+12.4%",
+    weekSales: "$47,820",
+    weekGrowth: "+3.2%",
+    avgTicket: "$89",
+    convRate: "42%",
+    traffic: 127,
+    trafficGoal: 110,
+    topProduct: "Emerald Paint",
+    topProductSales: "$450K",
+    lastSync: "Today 14:32",
+    inventory: [
+        { name: "Emerald® Interior",  pct: 85, days: 14, color: "#28A745", dot: "sd-green",  badge: "badge-green",  status: "Healthy"  },
+        { name: "SuperPaint® Ext.",   pct: 71, days: 11, color: "#28A745", dot: "sd-green",  badge: "badge-green",  status: "Healthy"  },
+        { name: "Duration® Ext.",     pct: 62, days:  9, color: "#FFC107", dot: "sd-yellow", badge: "badge-yellow", status: "Monitor"  },
+        { name: "ProIndustrial™",     pct: 45, days:  6, color: "#FFC107", dot: "sd-yellow", badge: "badge-yellow", status: "Monitor"  },
+        { name: "Exterior Primer",    pct: 28, days:  4, color: "#DC3545", dot: "sd-red",    badge: "badge-red",    status: "Reorder"  },
+        { name: "Woodscapes® Stain",  pct: 18, days:  3, color: "#DC3545", dot: "sd-red",    badge: "badge-red",    status: "Critical" },
+    ],
+    actions: [
+        { icon: "🔴", text: "Reorder Exterior Primer — below 30% threshold", priority: "HIGH",  pri: "pri-high" },
+        { icon: "🔴", text: "Woodscapes Stain critically low — expedite PO", priority: "HIGH",  pri: "pri-high" },
+        { icon: "🟡", text: "2 open interviews scheduled — confirm Thu slots", priority: "MED",  pri: "pri-med"  },
+        { icon: "🟡", text: "Q1 safety audit due Mar 15 — checklist pending", priority: "MED",  pri: "pri-med"  },
+        { icon: "🔵", text: "Pro referral program — enroll 3 contractors",    priority: "LOW",  pri: "pri-low"  },
+        { icon: "🔵", text: "ColorSnap® kiosk firmware update available",      priority: "LOW",  pri: "pri-low"  },
+    ],
+    ops: {
+        traffic: { val: "127", goal: "110", up: true },
+        ticket:  { val: "$89.40", goal: "$85.00", up: true },
+        conv:    { val: "42%",  goal: "40%",    up: true  },
+        returns: { val: "3",    goal: "< 5",    up: true  },
+        proSales:{ val: "$18,240", pct: "38%"              },
+        csScore: { val: "4.7 ★", goal: "4.5",  up: true  },
+    },
+    staff: [
+        { name: "M. Thompson",  role: "Assistant Manager", status: "On Floor",   sc: "badge-green"  },
+        { name: "D. Patterson", role: "Color Specialist",  status: "On Floor",   sc: "badge-green"  },
+        { name: "K. Williams",  role: "Sales Associate",   status: "Break",      sc: "badge-yellow" },
+        { name: "R. Santos",    role: "Sales Associate",   status: "On Floor",   sc: "badge-green"  },
+        { name: "J. Kim",       role: "Stock Associate",   status: "Stockroom",  sc: "badge-blue"   },
+    ],
+    spark: [60, 72, 55, 80, 68, 90, 78, 95, 82, 88, 74, 100]
+};
+
+const Spark = ({ data }) => {
+    const max = Math.max(...data);
+    return (
+        <div className="sparkline">
+            {data.map((v, i) => (
+                <div key={i} className="spark-bar"
+                    style={{ height: `${(v/max)*18}px`, opacity: i === data.length-1 ? 1 : 0.5 + (i/data.length)*0.5 }} />
+            ))}
+        </div>
+    );
+};
+
+const App = () => {
+    const [expanded, setExpanded] = useState(false);
+
+    if (!expanded) return (
+        <div className="teaser" onClick={() => setExpanded(true)}>
+            <div className="teaser-brand">
+                <div className="sw-dot"></div>
+                <div>
+                    <div style={{color:'white',fontSize:'13px',fontWeight:'800'}}>🏪 {STORE.name}</div>
+                    <div style={{color:'rgba(255,255,255,0.45)',fontSize:'9px'}}>Oracle EBS · Live</div>
+                </div>
+            </div>
+            <div className="teaser-kpis">
+                <div className="t-kpi">
+                    <span className="tk-label">YTD Sales</span>
+                    <span className="tk-val">{STORE.ytdSales}</span>
+                    <span className={`tk-delta up`}>{STORE.ytdGrowth} YoY</span>
+                </div>
+                <div className="t-divider"></div>
+                <div className="t-kpi">
+                    <span className="tk-label">This Week</span>
+                    <span className="tk-val">{STORE.weekSales}</span>
+                    <span className="tk-delta up">{STORE.weekGrowth} WoW</span>
+                </div>
+                <div className="t-divider"></div>
+                <div className="t-kpi">
+                    <span className="tk-label">Avg Ticket</span>
+                    <span className="tk-val">{STORE.avgTicket}</span>
+                    <span className="tk-delta up">▲ vs $85 goal</span>
+                </div>
+                <div className="t-divider"></div>
+                <div className="t-kpi">
+                    <span className="tk-label">Traffic</span>
+                    <span className="tk-val">{STORE.traffic}</span>
+                    <span className="tk-delta up">🟢 vs {STORE.trafficGoal} goal</span>
+                </div>
+            </div>
+            <button className="teaser-expand" onClick={e => { e.stopPropagation(); setExpanded(true); }}>
+                View Dashboard ↓
+            </button>
+        </div>
+    );
+
+    return (
+        <div className="dashboard">
+
+            {/* Top Bar */}
+            <div className="db-topbar">
+                <div className="db-topbar-left">
+                    <span className="ebs-label">Oracle EBS</span>
+                    <div>
+                        <div className="store-name">🏪 {STORE.name} – Store Manager Dashboard</div>
+                        <div className="store-sub">{STORE.region}</div>
+                    </div>
+                </div>
+                <div className="db-topbar-right">
+                    <div className="live-chip">
+                        <div className="live-dot"></div>
+                        <span>Live · {STORE.lastSync}</span>
+                    </div>
+                    <button className="close-btn" onClick={() => setExpanded(false)}>✕</button>
+                </div>
+            </div>
+
+            {/* KPI Ribbon */}
+            <div className="kpi-ribbon">
+                <div className="kpi-chip red-accent">
+                    <span className="kc-label">YTD Net Sales</span>
+                    <span className="kc-val">{STORE.ytdSales}</span>
+                    <span className="kc-sub up">{STORE.ytdGrowth} vs prior year</span>
+                </div>
+                <div className="kpi-chip red-accent">
+                    <span className="kc-label">Week Sales</span>
+                    <span className="kc-val">{STORE.weekSales}</span>
+                    <span className="kc-sub up">{STORE.weekGrowth} WoW</span>
+                </div>
+                <div className="kpi-chip">
+                    <span className="kc-label">Avg Ticket</span>
+                    <span className="kc-val">{STORE.avgTicket}</span>
+                    <span className="kc-sub up">▲ vs $85.00 goal</span>
+                </div>
+                <div className="kpi-chip">
+                    <span className="kc-label">Conversion</span>
+                    <span className="kc-val">{STORE.convRate}</span>
+                    <span className="kc-sub up">▲ vs 40% goal</span>
+                </div>
+                <div className="kpi-chip">
+                    <span className="kc-label">Top Product</span>
+                    <span className="kc-val" style={{fontSize:'13px'}}>{STORE.topProduct}</span>
+                    <span className="kc-sub" style={{color:'#64748b'}}>{STORE.topProductSales} YTD</span>
+                </div>
+            </div>
+
+            {/* 3-col grid */}
+            <div className="db-grid">
+
+                {/* ── Col 1: Inventory ── */}
+                <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+                    <div className="tile">
+                        <div className="tile-header">
+                            <span className="th-title">Inventory Health</span>
+                            <span className="th-badge badge-yellow">2 Alerts</span>
+                        </div>
+                        <div className="tile-body">
+                            {STORE.inventory.map((item, i) => (
+                                <div className="inv-row" key={i}>
+                                    <div className={`status-dot ${item.dot}`}></div>
+                                    <span className="inv-name">{item.name}</span>
+                                    <div className="inv-bar-wrap">
+                                        <div className="inv-bar-bg">
+                                            <div className="inv-bar-fill" style={{width:`${item.pct}%`,background:item.color}}></div>
+                                        </div>
+                                    </div>
+                                    <span className="inv-pct" style={{color:item.color}}>{item.pct}%</span>
+                                    <span className="inv-days">{item.days}d</span>
+                                </div>
+                            ))}
+                            <div style={{marginTop:'8px',padding:'6px 8px',background:'#f8fafc',borderRadius:'6px',border:'1px solid #e2e8f0'}}>
+                                <span style={{fontSize:'9px',color:'#94a3b8',fontWeight:'700',textTransform:'uppercase',letterSpacing:'0.05em'}}>Days of Cover: </span>
+                                {STORE.inventory.map((item, i) => (
+                                    <span key={i} style={{fontSize:'10px',fontWeight:'800',color:item.color,marginLeft:'6px'}}>{item.days}</span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="tile">
+                        <div className="tile-header">
+                            <span className="th-title">Sales Trend</span>
+                            <span className="th-badge badge-green">↑ Tracking</span>
+                        </div>
+                        <div className="tile-body">
+                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:'6px'}}>
+                                <div>
+                                    <div style={{fontSize:'11px',color:'#64748b',marginBottom:'2px'}}>Last 12 Weeks</div>
+                                    <div style={{fontSize:'16px',fontWeight:'900',color:'#1e293b'}}>{STORE.weekSales}</div>
+                                </div>
+                                <Spark data={STORE.spark} />
+                            </div>
+                            <div style={{display:'flex',gap:'10px',marginTop:'4px'}}>
+                                <div style={{flex:1,background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'6px',padding:'6px 8px'}}>
+                                    <div style={{fontSize:'9px',color:'#166534',fontWeight:'700'}}>BEST WEEK</div>
+                                    <div style={{fontSize:'13px',fontWeight:'900',color:'#166534'}}>$52,140</div>
+                                </div>
+                                <div style={{flex:1,background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:'6px',padding:'6px 8px'}}>
+                                    <div style={{fontSize:'9px',color:'#94a3b8',fontWeight:'700'}}>4-WK AVG</div>
+                                    <div style={{fontSize:'13px',fontWeight:'900',color:'#1e293b'}}>$45,960</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── Col 2: Operations ── */}
+                <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+                    <div className="tile">
+                        <div className="tile-header">
+                            <span className="th-title">Today's Operations</span>
+                            <span className="th-badge badge-green">On Track</span>
+                        </div>
+                        <div className="tile-body">
+                            {[
+                                { label: "Customer Traffic",  val: "127",      sub: "vs 110 goal",  dot:"sd-green"  },
+                                { label: "Avg Ticket Value",  val: "$89.40",   sub: "vs $85 goal",  dot:"sd-green"  },
+                                { label: "Conversion Rate",   val: "42%",      sub: "vs 40% goal",  dot:"sd-green"  },
+                                { label: "Return Txns",       val: "3",        sub: "< 5 threshold",dot:"sd-green"  },
+                                { label: "PRO Sales Mix",     val: "38%",      sub: "$18,240 today", dot:"sd-yellow" },
+                                { label: "Customer Score",    val: "4.7 ★",   sub: "vs 4.5 target", dot:"sd-green"  },
+                            ].map((r,i) => (
+                                <div className="ops-row" key={i}>
+                                    <span className="ops-label">{r.label}</span>
+                                    <span className="ops-val">
+                                        <div className={`status-dot ${r.dot}`} style={{width:'7px',height:'7px'}}></div>
+                                        {r.val}
+                                        <span className="ops-sub">{r.sub}</span>
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="tile">
+                        <div className="tile-header">
+                            <span className="th-title">Open Positions</span>
+                            <span className="th-badge badge-yellow">2 Openings</span>
+                        </div>
+                        <div className="tile-body">
+                            {[
+                                { role:"Color Specialist",   stage:"2nd Interview", due:"Mar 5" },
+                                { role:"Sales Associate PT", stage:"Applications",  due:"Mar 12" },
+                            ].map((p,i) => (
+                                <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom: i===0?'1px solid #f8fafc':'none'}}>
+                                    <div>
+                                        <div style={{fontSize:'11px',fontWeight:'700',color:'#1e293b'}}>{p.role}</div>
+                                        <div style={{fontSize:'9px',color:'#94a3b8',marginTop:'1px'}}>{p.stage}</div>
+                                    </div>
+                                    <div style={{textAlign:'right'}}>
+                                        <div style={{fontSize:'9px',fontWeight:'700',color:'#C8102E'}}>Due {p.due}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── Col 3: Actions + Staff ── */}
+                <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+                    <div className="tile">
+                        <div className="tile-header">
+                            <span className="th-title">Action Items</span>
+                            <span className="th-badge badge-red">2 High</span>
+                        </div>
+                        <div className="tile-body">
+                            {STORE.actions.map((a, i) => (
+                                <div className="action-item" key={i}>
+                                    <span className="action-icon">{a.icon}</span>
+                                    <span className="action-text">{a.text}</span>
+                                    <span className={`action-priority ${a.pri}`}>{a.priority}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="tile">
+                        <div className="tile-header">
+                            <span className="th-title">Floor Staff</span>
+                            <span className="th-badge badge-green">4 On Floor</span>
+                        </div>
+                        <div className="tile-body">
+                            {STORE.staff.map((s, i) => (
+                                <div className="staff-row" key={i}>
+                                    <div>
+                                        <div className="staff-name">{s.name}</div>
+                                        <div className="staff-role">{s.role}</div>
+                                    </div>
+                                    <span className={`staff-status ${s.sc}`}>{s.status}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            {/* Footer */}
+            <div className="db-footer">
+                <span>Oracle EBS R12 · Store Operations Module · District 4</span>
+                <span className="ebs-tag">EBS LIVE</span>
+                <span>Last sync: {STORE.lastSync}</span>
+            </div>
+
+        </div>
+    );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
