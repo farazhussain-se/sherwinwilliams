@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SW Safety Incident Report</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { overflow: hidden; height: auto; background: transparent; }
+        body {
+            padding: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 13px;
+        }
+
+        .card {
+            max-width: 360px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+        }
+
+        /* Header */
+        .header {
+            background: #C41230;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-left { color: white; font-size: 13px; font-weight: 900; display: flex; align-items: center; gap: 8px; letter-spacing: 0.03em; }
+        .header-right { color: rgba(255,255,255,0.8); font-size: 9px; font-family: monospace; }
+
+        /* Sub-header */
+        .subheader {
+            background: #1a1a1a;
+            padding: 7px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .subheader span { color: #9ca3af; font-size: 9px; }
+        .subheader strong { color: white; font-size: 9px; }
+
+        /* Step indicator */
+        .steps {
+            display: flex;
+            padding: 12px 14px;
+            border-bottom: 1px solid #f3f4f6;
+            gap: 4px;
+            align-items: center;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            font-size: 9px;
+            font-weight: 700;
+            color: #9ca3af;
+            padding: 5px 2px;
+            border-radius: 6px;
+            background: #f3f4f6;
+        }
+        .step.active { background: #C41230; color: white; }
+        .step.done   { background: #dcfce7; color: #166534; }
+        .step-arrow  { color: #d1d5db; font-size: 10px; }
+
+        /* Form body */
+        .form-body { padding: 14px; }
+
+        label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+            margin-top: 12px;
+        }
+        label:first-child { margin-top: 0; }
+
+        input[type="text"], input[type="time"], select, textarea {
+            width: 100%;
+            padding: 9px 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #111827;
+            background: #f9fafb;
+            outline: none;
+            font-family: inherit;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #C41230;
+            background: white;
+        }
+        textarea { resize: none; height: 72px; line-height: 1.5; }
+
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+        /* Severity selector */
+        .severity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 0; }
+        .sev-btn {
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 10px;
+            padding: 8px 6px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .sev-btn .sev-icon { font-size: 18px; }
+        .sev-btn .sev-label { font-size: 10px; font-weight: 800; margin-top: 3px; }
+        .sev-btn .sev-sub   { font-size: 8px; color: #9ca3af; margin-top: 1px; }
+        .sev-btn.sel-near   { border-color: #f59e0b; background: #fffbeb; }
+        .sev-btn.sel-near .sev-label { color: #92400e; }
+        .sev-btn.sel-first  { border-color: #f97316; background: #fff7ed; }
+        .sev-btn.sel-first .sev-label { color: #9a3412; }
+        .sev-btn.sel-record { border-color: #C41230; background: #fff1f2; }
+        .sev-btn.sel-record .sev-label { color: #C41230; }
+        .sev-btn.sel-lost   { border-color: #7c3aed; background: #f5f3ff; }
+        .sev-btn.sel-lost .sev-label   { color: #7c3aed; }
+
+        /* Body part selector */
+        .body-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+        .body-btn {
+            border: 1px solid #e5e7eb;
+            background: white;
+            border-radius: 8px;
+            padding: 6px 4px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 9px;
+            font-weight: 600;
+            color: #374151;
+        }
+        .body-btn.selected { border-color: #C41230; background: #fff1f2; color: #C41230; font-weight: 800; }
+
+        /* Checkbox row */
+        .check-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #f9fafb;
+            margin-top: 6px;
+            cursor: pointer;
+        }
+        .check-row input { width: 16px; height: 16px; accent-color: #C41230; cursor: pointer; flex-shrink: 0; }
+        .check-row span  { font-size: 11px; color: #374151; font-weight: 600; }
+
+        /* Nav buttons */
+        .nav { display: flex; gap: 8px; padding: 0 14px 14px; margin-top: 4px; }
+        .btn-back {
+            flex: 1; padding: 11px; border: 2px solid #e5e7eb; background: white;
+            border-radius: 10px; font-size: 13px; font-weight: 700; color: #374151; cursor: pointer;
+        }
+        .btn-next {
+            flex: 2; padding: 11px; border: none; background: #C41230;
+            border-radius: 10px; font-size: 13px; font-weight: 800; color: white; cursor: pointer;
+        }
+        .btn-next:active { opacity: 0.85; }
+        .btn-full {
+            width: 100%; padding: 13px; border: none; background: #C41230;
+            border-radius: 10px; font-size: 14px; font-weight: 900; color: white;
+            cursor: pointer; letter-spacing: 0.03em; margin: 0 14px; width: calc(100% - 28px);
+            display: block; margin-bottom: 14px;
+        }
+
+        /* Success screen */
+        .success { display: none; flex-direction: column; align-items: center; padding: 28px 20px; text-align: center; }
+        .success-icon { font-size: 52px; margin-bottom: 12px; }
+        .success h2 { font-size: 18px; font-weight: 900; color: #111827; margin-bottom: 6px; }
+        .success p  { font-size: 12px; color: #6b7280; line-height: 1.6; margin-bottom: 16px; }
+        .ref-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 16px; width: 100%; }
+        .ref-box p { font-size: 10px; color: #9ca3af; margin-bottom: 2px; }
+        .ref-box span { font-size: 15px; font-weight: 900; color: #C41230; font-family: monospace; }
+        .next-steps { background: #fff1f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 12px; width: 100%; margin-top: 10px; text-align: left; }
+        .next-steps p { font-size: 10px; font-weight: 700; color: #C41230; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+        .next-steps li { font-size: 10px; color: #374151; margin-left: 14px; margin-bottom: 3px; line-height: 1.4; }
+
+        .footer { background: #1a1a1a; padding: 7px 14px; display: flex; justify-content: space-between; }
+        .footer span { color: #6b7280; font-size: 9px; }
+        .notice { text-align: center; font-size: 10px; color: #9ca3af; margin-top: 8px; }
+
+        /* Page visibility */
+        .page { display: none; }
+        .page.active { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">⚠️ Safety Incident Report</div>
+        <div class="header-right" id="clock">--:--:--</div>
+    </div>
+
+    <!-- Sub-header -->
+    <div class="subheader">
+        <span>Jordan Rivera · SW-PLT-30412</span>
+        <strong>Cleveland Plant</strong>
+    </div>
+
+    <!-- Step Indicators -->
+    <div class="steps" id="step-indicator">
+        <div class="step active" id="step1-dot">1 · Incident</div>
+        <div class="step-arrow">›</div>
+        <div class="step" id="step2-dot">2 · Injury</div>
+        <div class="step-arrow">›</div>
+        <div class="step" id="step3-dot">3 · Actions</div>
+    </div>
+
+    <!-- ══════════════════════
+         PAGE 1: Incident Details
+    ══════════════════════ -->
+    <div class="page active" id="page1">
+        <div class="form-body">
+
+            <label>Incident Type</label>
+            <select id="inc-type">
+                <option value="">— Select type —</option>
+                <option>Near Miss</option>
+                <option>First Aid</option>
+                <option>Recordable Injury</option>
+                <option>Lost Time Injury</option>
+                <option>Property Damage</option>
+                <option>Chemical Spill / Exposure</option>
+                <option>Fire / Explosion Risk</option>
+                <option>Equipment Failure</option>
+            </select>
+
+            <label>Severity</label>
+            <div class="severity-grid">
+                <div class="sev-btn" onclick="selectSev('near', this)">
+                    <div class="sev-icon">🟡</div>
+                    <div class="sev-label">Near Miss</div>
+                    <div class="sev-sub">No injury</div>
+                </div>
+                <div class="sev-btn" onclick="selectSev('first', this)">
+                    <div class="sev-icon">🟠</div>
+                    <div class="sev-label">First Aid</div>
+                    <div class="sev-sub">Minor injury</div>
+                </div>
+                <div class="sev-btn" onclick="selectSev('record', this)">
+                    <div class="sev-icon">🔴</div>
+                    <div class="sev-label">Recordable</div>
+                    <div class="sev-sub">OSHA report</div>
+                </div>
+                <div class="sev-btn" onclick="selectSev('lost', this)">
+                    <div class="sev-icon">🟣</div>
+                    <div class="sev-label">Lost Time</div>
+                    <div class="sev-sub">Days away</div>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div>
+                    <label>Date</label>
+                    <input type="text" id="inc-date" value="" placeholder="MM/DD/YYYY">
+                </div>
+                <div>
+                    <label>Time</label>
+                    <input type="time" id="inc-time">
+                </div>
+            </div>
+
+            <label>Location / Area</label>
+            <select id="inc-location">
+                <option value="">— Select area —</option>
+                <option>Batch Production – Line 1</option>
+                <option>Batch Production – Line 2</option>
+                <option>Batch Production – Line 4</option>
+                <option>Warehouse / Receiving</option>
+                <option>Quality Lab</option>
+                <option>Maintenance Shop</option>
+                <option>Loading Dock</option>
+                <option>Common Area / Break Room</option>
+                <option>Parking / Exterior</option>
+            </select>
+
+            <label>Brief Description</label>
+            <textarea id="inc-desc" placeholder="Describe what happened in 1–2 sentences..."></textarea>
+
+        </div>
+        <div class="nav">
+            <button class="btn-next" onclick="goTo(2)">Next: Injury Details →</button>
+        </div>
+    </div>
+
+    <!-- ══════════════════════
+         PAGE 2: Injury Details
+    ══════════════════════ -->
+    <div class="page" id="page2">
+        <div class="form-body">
+
+            <label>Injured Employee (if applicable)</label>
+            <input type="text" id="inj-name" placeholder="Full name or 'Self'" value="Jordan Rivera">
+
+            <label>Body Part Affected</label>
+            <div class="body-grid">
+                <div class="body-btn" onclick="toggleBody(this)">Head</div>
+                <div class="body-btn" onclick="toggleBody(this)">Eye(s)</div>
+                <div class="body-btn" onclick="toggleBody(this)">Neck</div>
+                <div class="body-btn" onclick="toggleBody(this)">Shoulder</div>
+                <div class="body-btn" onclick="toggleBody(this)">Arm / Elbow</div>
+                <div class="body-btn" onclick="toggleBody(this)">Hand / Wrist</div>
+                <div class="body-btn" onclick="toggleBody(this)">Finger(s)</div>
+                <div class="body-btn" onclick="toggleBody(this)">Back</div>
+                <div class="body-btn" onclick="toggleBody(this)">Torso</div>
+                <div class="body-btn" onclick="toggleBody(this)">Leg / Knee</div>
+                <div class="body-btn" onclick="toggleBody(this)">Ankle / Foot</div>
+                <div class="body-btn" onclick="toggleBody(this)">Chemical Exposure</div>
+            </div>
+
+            <label>Nature of Injury</label>
+            <select id="inj-nature">
+                <option value="">— Select —</option>
+                <option>Cut / Laceration</option>
+                <option>Bruise / Contusion</option>
+                <option>Burn (thermal)</option>
+                <option>Chemical burn / Exposure</option>
+                <option>Strain / Sprain</option>
+                <option>Fracture</option>
+                <option>Eye irritation / Foreign body</option>
+                <option>Inhalation exposure</option>
+                <option>No injury – near miss</option>
+            </select>
+
+            <label>PPE in Use at Time of Incident</label>
+            <div class="check-row"><input type="checkbox" id="ppe1" checked><span>Safety glasses / goggles</span></div>
+            <div class="check-row"><input type="checkbox" id="ppe2" checked><span>Steel-toed boots</span></div>
+            <div class="check-row"><input type="checkbox" id="ppe3"><span>Chemical-resistant gloves</span></div>
+            <div class="check-row"><input type="checkbox" id="ppe4"><span>Hard hat</span></div>
+            <div class="check-row"><input type="checkbox" id="ppe5"><span>Respirator / Face shield</span></div>
+
+        </div>
+        <div class="nav">
+            <button class="btn-back" onclick="goTo(1)">← Back</button>
+            <button class="btn-next" onclick="goTo(3)">Next: Actions →</button>
+        </div>
+    </div>
+
+    <!-- ══════════════════════
+         PAGE 3: Immediate Actions
+    ══════════════════════ -->
+    <div class="page" id="page3">
+        <div class="form-body">
+
+            <label>Immediate Actions Taken</label>
+            <div class="check-row"><input type="checkbox" id="act1"><span>First aid administered on-site</span></div>
+            <div class="check-row"><input type="checkbox" id="act2"><span>Sent to occupational health / clinic</span></div>
+            <div class="check-row"><input type="checkbox" id="act3"><span>Area cordoned off / made safe</span></div>
+            <div class="check-row"><input type="checkbox" id="act4"><span>Supervisor notified</span></div>
+            <div class="check-row"><input type="checkbox" id="act5"><span>EHS team notified</span></div>
+            <div class="check-row"><input type="checkbox" id="act6"><span>Equipment locked out / tagged out</span></div>
+            <div class="check-row"><input type="checkbox" id="act7"><span>Spill kit deployed</span></div>
+
+            <label style="margin-top:12px;">Root Cause (initial assessment)</label>
+            <select id="root-cause">
+                <option value="">— Select —</option>
+                <option>Unsafe act / behaviour</option>
+                <option>Unsafe condition / environment</option>
+                <option>Inadequate PPE / equipment</option>
+                <option>Lack of / inadequate training</option>
+                <option>Procedure not followed</option>
+                <option>Equipment failure / malfunction</option>
+                <option>Ergonomic / repetitive motion</option>
+                <option>Unknown – investigation needed</option>
+            </select>
+
+            <label>Witnesses (optional)</label>
+            <input type="text" id="witnesses" placeholder="Names of witnesses, or 'None'">
+
+            <label>Additional Notes</label>
+            <textarea id="notes" placeholder="Anything else the EHS team should know..."></textarea>
+
+        </div>
+        <div class="nav">
+            <button class="btn-back" onclick="goTo(2)">← Back</button>
+            <button class="btn-next" onclick="submitReport()">Submit Report ✓</button>
+        </div>
+    </div>
+
+    <!-- ══════════════════════
+         SUCCESS SCREEN
+    ══════════════════════ -->
+    <div class="page" id="page-success">
+        <div class="success" id="success-content">
+            <div class="success-icon">✅</div>
+            <h2>Report Submitted</h2>
+            <p>Your incident report has been received by the EHS team at the Cleveland Plant. A supervisor will follow up within 2 hours.</p>
+            <div class="ref-box">
+                <p>Reference Number</p>
+                <span id="ref-number">--</span>
+            </div>
+            <div class="next-steps">
+                <p>⚠ Next Steps</p>
+                <ul>
+                    <li>Notify your direct supervisor immediately if not yet done</li>
+                    <li>Complete OSHA Form 301 if recordable (EHS will contact you)</li>
+                    <li>Preserve the scene — do not move equipment</li>
+                    <li>Attend follow-up EHS debrief within 24 hrs</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <span>SW EHS System · OSHA VPP Star Site</span>
+        <span id="footer-date"></span>
+    </div>
+
+</div>
+
+<div class="notice">Sherwin-Williams · Confidential Safety Record</div>
+
+<script>
+    // ── Clock ──
+    function updateClock() {
+        var now = new Date();
+        document.getElementById('clock').textContent =
+            now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // ── Footer date ──
+    document.getElementById('footer-date').textContent =
+        new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+
+    // ── Pre-fill date/time ──
+    var now = new Date();
+    document.getElementById('inc-date').value =
+        (now.getMonth()+1).toString().padStart(2,'0') + '/' +
+        now.getDate().toString().padStart(2,'0') + '/' +
+        now.getFullYear();
+    document.getElementById('inc-time').value =
+        now.getHours().toString().padStart(2,'0') + ':' +
+        now.getMinutes().toString().padStart(2,'0');
+
+    // ── Step navigation ──
+    function goTo(step) {
+        document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+        document.getElementById('page' + step).classList.add('active');
+        ['step1-dot','step2-dot','step3-dot'].forEach(function(id, i) {
+            var el = document.getElementById(id);
+            el.className = 'step';
+            if (i + 1 < step)  el.classList.add('done');
+            if (i + 1 === step) el.classList.add('active');
+        });
+    }
+
+    // ── Severity selector ──
+    var sevClasses = { near:'sel-near', first:'sel-first', record:'sel-record', lost:'sel-lost' };
+    function selectSev(key, btn) {
+        document.querySelectorAll('.sev-btn').forEach(function(b) {
+            b.className = 'sev-btn';
+        });
+        btn.classList.add(sevClasses[key]);
+    }
+
+    // ── Body part toggle ──
+    function toggleBody(btn) {
+        btn.classList.toggle('selected');
+    }
+
+    // ── Submit ──
+    function submitReport() {
+        document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+        document.getElementById('step-indicator').style.display = 'none';
+        document.getElementById('page-success').classList.add('active');
+        var ref = 'SW-INC-' + new Date().getFullYear() + '-' +
+                  Math.floor(Math.random() * 90000 + 10000);
+        document.getElementById('ref-number').textContent = ref;
+    }
+</script>
+</body>
+</html>
