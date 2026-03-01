@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SW Shift Manager</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { overflow: hidden; height: auto; background: transparent; }
+        body {
+            padding: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 13px;
+        }
+
+        .card {
+            max-width: 360px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+        }
+
+        /* Header */
+        .header {
+            background: #C41230;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-title { color: white; font-size: 13px; font-weight: 900; letter-spacing: 0.03em; }
+        .header-right  { color: rgba(255,255,255,0.8); font-size: 9px; font-family: monospace; }
+
+        .subheader {
+            background: #1a1a1a;
+            padding: 7px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .subheader span   { color: #9ca3af; font-size: 9px; }
+        .subheader strong { color: white; font-size: 9px; }
+
+        /* Tabs */
+        .tabs { display: flex; border-bottom: 1px solid #f3f4f6; }
+        .tab-btn {
+            flex: 1; padding: 10px 4px; border: none; background: transparent;
+            cursor: pointer; font-size: 11px; font-weight: 700; color: #6b7280;
+            border-bottom: 2px solid transparent; transition: all 0.15s;
+        }
+        .tab-btn.active { color: #C41230; border-bottom-color: #C41230; }
+
+        /* Page visibility */
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* ── MY SCHEDULE ── */
+        .week-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px 6px;
+        }
+        .week-label { font-size: 11px; font-weight: 700; color: #374151; }
+        .week-nav button {
+            background: none; border: 1px solid #e5e7eb; border-radius: 6px;
+            padding: 3px 9px; cursor: pointer; font-size: 12px; color: #374151;
+            margin-left: 4px;
+        }
+
+        .day-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 14px;
+            border-bottom: 1px solid #f9fafb;
+            gap: 10px;
+        }
+        .day-row:last-child { border-bottom: none; }
+        .day-label {
+            width: 32px; text-align: center;
+            font-size: 10px; font-weight: 700; color: #6b7280; flex-shrink: 0;
+        }
+        .day-label.today { color: #C41230; }
+        .day-date {
+            width: 24px; text-align: center;
+            font-size: 13px; font-weight: 900; color: #111827; flex-shrink: 0;
+        }
+        .day-date.today {
+            background: #C41230; color: white; border-radius: 50%;
+            width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+        }
+        .shift-pill {
+            flex: 1; padding: 6px 10px; border-radius: 8px;
+            font-size: 10px; font-weight: 700;
+        }
+        .shift-day  { background: #dbeafe; color: #1e40af; }
+        .shift-eve  { background: #fef3c7; color: #92400e; }
+        .shift-night{ background: #ede9fe; color: #5b21b6; }
+        .shift-off  { background: #f3f4f6; color: #9ca3af; }
+        .shift-name { font-size: 10px; font-weight: 700; }
+        .shift-time { font-size: 9px; font-weight: 400; margin-top: 1px; opacity: 0.85; }
+        .swap-tag {
+            font-size: 8px; font-weight: 800; padding: 2px 6px;
+            border-radius: 99px; background: #fff1f2; color: #C41230;
+            border: 1px solid #fecaca; flex-shrink: 0; cursor: pointer;
+        }
+        .hours-summary {
+            display: flex; justify-content: space-around;
+            padding: 10px 14px; border-top: 1px solid #f3f4f6;
+            background: #f9fafb;
+        }
+        .hours-block { text-align: center; }
+        .hours-block p:first-child { font-size: 16px; font-weight: 900; color: #111827; }
+        .hours-block p:last-child  { font-size: 9px; color: #9ca3af; margin-top: 2px; }
+
+        /* ── OPEN SHIFTS ── */
+        .open-filter {
+            display: flex; gap: 6px; padding: 10px 14px 8px; overflow-x: auto;
+        }
+        .filter-btn {
+            white-space: nowrap; padding: 5px 10px; border-radius: 99px;
+            border: 1px solid #e5e7eb; background: white; font-size: 10px;
+            font-weight: 700; color: #6b7280; cursor: pointer; flex-shrink: 0;
+        }
+        .filter-btn.active { background: #C41230; color: white; border-color: #C41230; }
+
+        .open-shift-card {
+            margin: 0 14px 8px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 10px 12px;
+            background: #f9fafb;
+        }
+        .osc-top {
+            display: flex; justify-content: space-between; align-items: flex-start;
+        }
+        .osc-date  { font-size: 12px; font-weight: 800; color: #111827; }
+        .osc-area  { font-size: 9px; color: #6b7280; margin-top: 2px; }
+        .osc-badge { font-size: 9px; font-weight: 800; padding: 3px 8px; border-radius: 99px; }
+        .badge-day   { background: #dbeafe; color: #1e40af; }
+        .badge-eve   { background: #fef3c7; color: #92400e; }
+        .badge-night { background: #ede9fe; color: #5b21b6; }
+        .osc-meta {
+            display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap;
+        }
+        .osc-meta span { font-size: 9px; color: #6b7280; }
+        .osc-meta strong { color: #374151; }
+        .claim-btn {
+            width: 100%; margin-top: 8px; padding: 8px; border: none;
+            background: #C41230; color: white; font-size: 11px; font-weight: 800;
+            border-radius: 8px; cursor: pointer;
+        }
+        .claim-btn.claimed { background: #dcfce7; color: #166534; cursor: default; }
+
+        /* ── SWAP ── */
+        .swap-section { padding: 12px 14px; }
+        .swap-section h3 { font-size: 11px; font-weight: 800; color: #374151; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+
+        .my-shift-select {
+            border: 2px solid #e5e7eb; border-radius: 10px; overflow: hidden; margin-bottom: 12px;
+        }
+        .mss-row {
+            display: flex; align-items: center; padding: 9px 12px; gap: 10px;
+            border-bottom: 1px solid #f3f4f6; cursor: pointer; background: white;
+        }
+        .mss-row:last-child { border-bottom: none; }
+        .mss-row.selected  { background: #fff1f2; border-left: 3px solid #C41230; }
+        .mss-check { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #e5e7eb; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .mss-check.checked { background: #C41230; border-color: #C41230; color: white; font-size: 9px; }
+        .mss-info { flex: 1; }
+        .mss-date { font-size: 11px; font-weight: 700; color: #111827; }
+        .mss-time { font-size: 9px; color: #6b7280; margin-top: 1px; }
+
+        .swap-arrow { text-align: center; font-size: 20px; margin: 4px 0 10px; color: #C41230; }
+
+        .offer-card {
+            border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; margin-bottom: 6px;
+            display: flex; align-items: center; gap: 10px; cursor: pointer; background: white;
+        }
+        .offer-card.selected { border-color: #C41230; background: #fff1f2; }
+        .offer-avatar { width: 32px; height: 32px; border-radius: 50%; background: #003087; color: white; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .offer-info { flex: 1; }
+        .offer-name { font-size: 11px; font-weight: 700; color: #111827; }
+        .offer-shift { font-size: 9px; color: #6b7280; margin-top: 1px; }
+        .offer-check { font-size: 14px; color: #C41230; }
+
+        .swap-submit {
+            width: 100%; padding: 12px; background: #C41230; color: white;
+            font-size: 13px; font-weight: 900; border: none; border-radius: 10px;
+            cursor: pointer; margin-top: 4px; letter-spacing: 0.02em;
+        }
+        .swap-submit:disabled { background: #e5e7eb; color: #9ca3af; cursor: default; }
+
+        .swap-success {
+            display: none; flex-direction: column; align-items: center;
+            padding: 24px 20px; text-align: center;
+        }
+        .swap-success .s-icon { font-size: 44px; margin-bottom: 10px; }
+        .swap-success h3 { font-size: 16px; font-weight: 900; color: #111827; margin-bottom: 6px; }
+        .swap-success p  { font-size: 11px; color: #6b7280; line-height: 1.6; }
+        .pending-badge { display: inline-block; background: #fef3c7; color: #92400e; font-size: 10px; font-weight: 800; padding: 4px 12px; border-radius: 99px; margin: 8px 0; }
+
+        .footer { background: #1a1a1a; padding: 7px 14px; display: flex; justify-content: space-between; }
+        .footer span { color: #6b7280; font-size: 9px; }
+        .notice { text-align: center; font-size: 10px; color: #9ca3af; margin-top: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-title">🗓 Shift Manager</div>
+        <div class="header-right" id="clock">--:--:--</div>
+    </div>
+    <div class="subheader">
+        <span>Jordan Rivera · SW-PLT-30412</span>
+        <strong>Cleveland Plant · Line 4</strong>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('schedule', this)">My Schedule</button>
+        <button class="tab-btn"        onclick="switchTab('open', this)">Open Shifts</button>
+        <button class="tab-btn"        onclick="switchTab('swap', this)">Swap Shifts</button>
+    </div>
+
+    <!-- ══════════════════════════
+         TAB 1: MY SCHEDULE
+    ══════════════════════════ -->
+    <div class="page active" id="tab-schedule">
+
+        <div class="week-header">
+            <span class="week-label" id="week-label">Week of Mar 1 – Mar 7</span>
+            <div class="week-nav">
+                <button onclick="changeWeek(-1)">‹</button>
+                <button onclick="changeWeek(1)">›</button>
+            </div>
+        </div>
+
+        <div id="schedule-rows"></div>
+
+        <div class="hours-summary">
+            <div class="hours-block">
+                <p id="hrs-scheduled">40</p>
+                <p>Hrs Scheduled</p>
+            </div>
+            <div class="hours-block">
+                <p id="hrs-worked">32</p>
+                <p>Hrs Worked</p>
+            </div>
+            <div class="hours-block">
+                <p id="hrs-ot">0</p>
+                <p>Overtime</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════
+         TAB 2: OPEN SHIFTS
+    ══════════════════════════ -->
+    <div class="page" id="tab-open">
+
+        <div class="open-filter">
+            <button class="filter-btn active" onclick="filterShifts('all', this)">All</button>
+            <button class="filter-btn"        onclick="filterShifts('day', this)">Day</button>
+            <button class="filter-btn"        onclick="filterShifts('evening', this)">Evening</button>
+            <button class="filter-btn"        onclick="filterShifts('night', this)">Night</button>
+            <button class="filter-btn"        onclick="filterShifts('weekend', this)">Weekend</button>
+        </div>
+
+        <div id="open-shifts-list" style="padding-bottom:12px;"></div>
+    </div>
+
+    <!-- ══════════════════════════
+         TAB 3: SWAP SHIFTS
+    ══════════════════════════ -->
+    <div class="page" id="tab-swap">
+        <div id="swap-form">
+            <div class="swap-section">
+
+                <h3>1. Select your shift to give up</h3>
+                <div class="my-shift-select" id="my-shifts-list"></div>
+
+                <div class="swap-arrow">⇅</div>
+
+                <h3>2. Select a colleague's shift to take</h3>
+                <div id="offer-list"></div>
+
+                <button class="swap-submit" id="swap-submit-btn" disabled onclick="submitSwap()">
+                    Request Swap →
+                </button>
+            </div>
+        </div>
+
+        <div class="swap-success" id="swap-success">
+            <div class="s-icon">🔄</div>
+            <h3>Swap Request Sent!</h3>
+            <div class="pending-badge">⏳ Pending Supervisor Approval</div>
+            <p>Your request has been sent to <strong id="swap-recipient"></strong> and is awaiting approval from your Line 4 supervisor. You'll receive a MySherwin notification once confirmed.</p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <span>Powered by MySherwin · Dayforce</span>
+        <span id="footer-date"></span>
+    </div>
+</div>
+
+<div class="notice">Sherwin-Williams · Shift data is indicative for demo</div>
+
+<script>
+    // ── Clock ──
+    function updateClock() {
+        document.getElementById('clock').textContent =
+            new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    }
+    updateClock(); setInterval(updateClock, 1000);
+
+    document.getElementById('footer-date').textContent =
+        new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+
+    // ── Tab switching ──
+    function switchTab(name, btn) {
+        document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+        document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+        document.getElementById('tab-' + name).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    // ══════════════════════
+    // MY SCHEDULE
+    // ══════════════════════
+    var weekOffset = 0;
+    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    // Base pattern: 5-day day shift, 2 off
+    var shiftPattern = [
+        { type:'day',   name:'Day',     time:'06:00 – 14:30', hrs:8 },
+        { type:'day',   name:'Day',     time:'06:00 – 14:30', hrs:8 },
+        { type:'day',   name:'Day',     time:'06:00 – 14:30', hrs:8 },
+        { type:'day',   name:'Day',     time:'06:00 – 14:30', hrs:8 },
+        { type:'day',   name:'Day',     time:'06:00 – 14:30', hrs:8 },
+        { type:'off',   name:'Day Off', time:'',               hrs:0 },
+        { type:'off',   name:'Day Off', time:'',               hrs:0 }
+    ];
+
+    function renderSchedule() {
+        var base = new Date(2026, 2, 1); // March 1 2026
+        base.setDate(base.getDate() + weekOffset * 7);
+        var end = new Date(base); end.setDate(end.getDate() + 6);
+
+        var opts = { month:'short', day:'numeric' };
+        document.getElementById('week-label').textContent =
+            'Week of ' + base.toLocaleDateString('en-US', opts) + ' – ' + end.toLocaleDateString('en-US', opts);
+
+        var today = new Date(); today.setHours(0,0,0,0);
+        var html = '';
+        var totalHrs = 0;
+        var workedHrs = 0;
+
+        for (var i = 0; i < 7; i++) {
+            var d = new Date(base); d.setDate(d.getDate() + i);
+            var isToday = d.getTime() === today.getTime();
+            var isPast  = d < today;
+            var s = shiftPattern[(i + weekOffset * 7 + 7) % 7] || shiftPattern[i];
+            // Vary the pattern slightly for visual interest
+            if (i === 2 && weekOffset === 0) s = { type:'evening', name:'Evening', time:'14:30 – 23:00', hrs:8 };
+            if (i === 5 && weekOffset === 0) s = { type:'day',     name:'Day',     time:'06:00 – 14:30', hrs:8 };
+
+            totalHrs += s.hrs;
+            if (isPast && s.hrs > 0) workedHrs += s.hrs;
+
+            var pillClass = s.type === 'day' ? 'shift-day' : s.type === 'evening' ? 'shift-eve' : s.type === 'night' ? 'shift-night' : 'shift-off';
+
+            html += '<div class="day-row">' +
+                '<div class="day-label' + (isToday ? ' today' : '') + '">' + days[d.getDay()] + '</div>' +
+                '<div class="day-date' + (isToday ? ' today' : '') + '">' + d.getDate() + '</div>' +
+                '<div class="shift-pill ' + pillClass + '">' +
+                    '<div class="shift-name">' + s.name + (s.type === 'off' ? '' : ' Shift') + '</div>' +
+                    (s.time ? '<div class="shift-time">' + s.time + '</div>' : '') +
+                '</div>' +
+                (s.type !== 'off' && !isPast ? '<div class="swap-tag" onclick="quickSwap()">Swap</div>' : '') +
+            '</div>';
+        }
+
+        document.getElementById('schedule-rows').innerHTML = html;
+        document.getElementById('hrs-scheduled').textContent = totalHrs;
+        document.getElementById('hrs-worked').textContent    = workedHrs;
+        document.getElementById('hrs-ot').textContent        = Math.max(0, workedHrs - 40);
+    }
+
+    function changeWeek(dir) { weekOffset += dir; renderSchedule(); }
+    renderSchedule();
+
+    function quickSwap() { switchTab('swap', document.querySelectorAll('.tab-btn')[2]); }
+
+    // ══════════════════════
+    // OPEN SHIFTS
+    // ══════════════════════
+    var openShifts = [
+        { id:1, date:'Mon, Mar 2',  area:'Line 4 – Batch Prod.', type:'day',     badge:'Day',     time:'06:00 – 14:30', hrs:8,  pay:'$22.40/hr', reason:'Vacancy' },
+        { id:2, date:'Tue, Mar 3',  area:'Line 2 – Mixing',      type:'evening', badge:'Evening', time:'14:30 – 23:00', hrs:8,  pay:'$23.10/hr', reason:'Callout'  },
+        { id:3, date:'Wed, Mar 4',  area:'Warehouse / Receiving', type:'night',   badge:'Night',   time:'23:00 – 06:00', hrs:8,  pay:'$24.50/hr', reason:'Vacancy' },
+        { id:4, date:'Sat, Mar 7',  area:'Line 4 – Batch Prod.', type:'day',     badge:'Day',     time:'06:00 – 14:30', hrs:8,  pay:'$22.40/hr', reason:'Weekend' },
+        { id:5, date:'Sun, Mar 8',  area:'Quality Lab',           type:'day',     badge:'Day',     time:'07:00 – 15:00', hrs:8,  pay:'$22.40/hr', reason:'Weekend' },
+        { id:6, date:'Mon, Mar 9',  area:'Maintenance Shop',      type:'evening', badge:'Evening', time:'14:30 – 23:00', hrs:8,  pay:'$23.10/hr', reason:'Callout'  }
+    ];
+    var claimedShifts = {};
+    var activeFilter  = 'all';
+
+    function filterShifts(f, btn) {
+        activeFilter = f;
+        document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        renderOpenShifts();
+    }
+
+    function renderOpenShifts() {
+        var filtered = openShifts.filter(function(s) {
+            if (activeFilter === 'all')     return true;
+            if (activeFilter === 'weekend') return s.date.indexOf('Sat') > -1 || s.date.indexOf('Sun') > -1;
+            return s.type === activeFilter;
+        });
+
+        var html = '';
+        if (filtered.length === 0) {
+            html = '<p style="text-align:center;color:#9ca3af;font-size:11px;padding:20px;">No open shifts for this filter.</p>';
+        }
+        filtered.forEach(function(s) {
+            var badgeClass = s.type === 'day' ? 'badge-day' : s.type === 'evening' ? 'badge-eve' : 'badge-night';
+            var claimed = claimedShifts[s.id];
+            html += '<div class="open-shift-card">' +
+                '<div class="osc-top">' +
+                    '<div><div class="osc-date">' + s.date + '</div><div class="osc-area">' + s.area + '</div></div>' +
+                    '<span class="osc-badge ' + badgeClass + '">' + s.badge + '</span>' +
+                '</div>' +
+                '<div class="osc-meta">' +
+                    '<span>⏰ <strong>' + s.time + '</strong></span>' +
+                    '<span>🕐 <strong>' + s.hrs + ' hrs</strong></span>' +
+                    '<span>💵 <strong>' + s.pay + '</strong></span>' +
+                    '<span>📌 <strong>' + s.reason + '</strong></span>' +
+                '</div>' +
+                '<button class="claim-btn' + (claimed ? ' claimed' : '') + '" onclick="claimShift(' + s.id + ', this)">' +
+                    (claimed ? '✓ Shift Claimed' : 'Claim This Shift') +
+                '</button>' +
+            '</div>';
+        });
+        document.getElementById('open-shifts-list').innerHTML = html;
+    }
+
+    function claimShift(id, btn) {
+        if (claimedShifts[id]) return;
+        claimedShifts[id] = true;
+        btn.textContent = '✓ Shift Claimed';
+        btn.classList.add('claimed');
+    }
+
+    renderOpenShifts();
+
+    // ══════════════════════
+    // SWAP SHIFTS
+    // ══════════════════════
+    var myUpcoming = [
+        { id:'s1', date:'Wed, Mar 4', time:'06:00 – 14:30', type:'Day Shift'     },
+        { id:'s2', date:'Thu, Mar 5', time:'14:30 – 23:00', type:'Evening Shift' },
+        { id:'s3', date:'Fri, Mar 6', time:'06:00 – 14:30', type:'Day Shift'     }
+    ];
+
+    var swapOffers = [
+        { id:'o1', name:'Marcus B.', initials:'MB', date:'Mon, Mar 9',  time:'06:00 – 14:30', type:'Day Shift'     },
+        { id:'o2', name:'Priya K.',  initials:'PK', date:'Tue, Mar 10', time:'14:30 – 23:00', type:'Evening Shift' },
+        { id:'o3', name:'Luis T.',   initials:'LT', date:'Wed, Mar 11', time:'06:00 – 14:30', type:'Day Shift'     }
+    ];
+
+    var selectedMyShift  = null;
+    var selectedOffer    = null;
+
+    function renderSwapForm() {
+        // My shifts
+        var html = '';
+        myUpcoming.forEach(function(s) {
+            var sel = selectedMyShift === s.id;
+            html += '<div class="mss-row' + (sel ? ' selected' : '') + '" onclick="selectMyShift(\'' + s.id + '\')">' +
+                '<div class="mss-check' + (sel ? ' checked' : '') + '">' + (sel ? '✓' : '') + '</div>' +
+                '<div class="mss-info">' +
+                    '<div class="mss-date">' + s.date + ' · ' + s.type + '</div>' +
+                    '<div class="mss-time">' + s.time + '</div>' +
+                '</div>' +
+            '</div>';
+        });
+        document.getElementById('my-shifts-list').innerHTML = html;
+
+        // Offers
+        var ohtml = '';
+        swapOffers.forEach(function(o) {
+            var sel = selectedOffer === o.id;
+            ohtml += '<div class="offer-card' + (sel ? ' selected' : '') + '" onclick="selectOffer(\'' + o.id + '\', \'' + o.name + '\')">' +
+                '<div class="offer-avatar">' + o.initials + '</div>' +
+                '<div class="offer-info">' +
+                    '<div class="offer-name">' + o.name + '</div>' +
+                    '<div class="offer-shift">' + o.date + ' · ' + o.type + ' · ' + o.time + '</div>' +
+                '</div>' +
+                (sel ? '<div class="offer-check">✓</div>' : '') +
+            '</div>';
+        });
+        document.getElementById('offer-list').innerHTML = ohtml;
+
+        // Enable submit only when both selected
+        document.getElementById('swap-submit-btn').disabled = !(selectedMyShift && selectedOffer);
+    }
+
+    function selectMyShift(id) {
+        selectedMyShift = id;
+        renderSwapForm();
+    }
+
+    function selectOffer(id, name) {
+        selectedOffer     = id;
+        selectedOfferName = name;
+        renderSwapForm();
+    }
+
+    var selectedOfferName = '';
+
+    function submitSwap() {
+        document.getElementById('swap-form').style.display    = 'none';
+        document.getElementById('swap-success').style.display = 'flex';
+        document.getElementById('swap-recipient').textContent = selectedOfferName;
+    }
+
+    renderSwapForm();
+</script>
+
+</body>
+</html>
